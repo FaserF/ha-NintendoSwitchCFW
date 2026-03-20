@@ -29,7 +29,8 @@ async def test_coordinator_sleep_mode(mock_hass, mock_config_entry, mock_switch_
     coordinator = SwitchDataUpdateCoordinator(mock_hass, mock_config_entry)
 
     # 1. First update succeeds
-    await coordinator._async_update_data()
+    data = await coordinator._async_update_data()
+    coordinator.data = data
     assert coordinator.sleep_mode is False
 
     # 2. API fails - should enter sleep mode

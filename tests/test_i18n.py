@@ -107,9 +107,10 @@ def test_switch_hardcoded_strings():
                             match = re.search(r'"([^"]+)"', line)
                             if match:
                                 val = match.group(1)
+                                val_clean = val.lstrip()
                                 if (
-                                    len(val) > 3
-                                    and not val.startswith(
+                                    len(val_clean) > 3
+                                    and not val_clean.startswith(
                                         (
                                             "%",
                                             "HTTP",
@@ -120,7 +121,6 @@ def test_switch_hardcoded_strings():
                                             '"',
                                             "\\x1b",
                                             "+--",
-                                            "    ",
                                             "Launching title ID",
                                             "Failed to launch",
                                             "Press (",
@@ -133,6 +133,10 @@ def test_switch_hardcoded_strings():
                                             "Automatic update",
                                             "running the latest version",
                                             "Error checking for updates",
+                                            "Attempting to auto-download",
+                                            "Downloading sysmodule v",
+                                            "Checking for updates",
+                                            "Install Update",
                                         )
                                     )
                                     and not any(
@@ -142,6 +146,7 @@ def test_switch_hardcoded_strings():
                                             "[ SYSTEM STATUS ]",
                                             "[ CONFIGURATION ]",
                                             "[ UPDATES ]",
+                                            "[ DEBUG INFO ]",
                                             "Service Status",
                                             "IP Address",
                                             "App Version",

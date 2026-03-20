@@ -2,11 +2,24 @@
 
 from __future__ import annotations
 
-from typing import Any
 import asyncio
 import socket
+from typing import TYPE_CHECKING, Any
+
 import aiohttp
 import voluptuous as vol
+
+if TYPE_CHECKING:
+    from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+else:
+    # ZeroconfServiceInfo location depends on Home Assistant version
+    try:
+        from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+    except ImportError:
+        try:
+            from homeassistant.components.zeroconf import ZeroconfServiceInfo
+        except ImportError:
+            from typing import Any as ZeroconfServiceInfo
 
 from homeassistant.components import network
 from homeassistant.config_entries import (
@@ -19,14 +32,6 @@ from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
 
 
-# ZeroconfServiceInfo location depends on Home Assistant version
-try:
-    from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
-except ImportError:
-    try:
-        from homeassistant.components.zeroconf import ZeroconfServiceInfo
-    except ImportError:
-        from typing import Any as ZeroconfServiceInfo
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import config_validation as cv
 

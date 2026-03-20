@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from custom_components.switch_cfw.binary_sensor import (
     ChargingBinarySensor,
     DockedBinarySensor,
-    SleepModeBinarySensor,
+    SleepBinarySensor,
 )
 
 
@@ -30,7 +30,7 @@ async def test_binary_sensor_states(mock_hass, mock_config_entry):
     assert sensor.is_on is True
 
     # Test Sleep Mode Binary Sensor
-    sensor = SleepModeBinarySensor(coordinator)
+    sensor = SleepBinarySensor(coordinator)
     assert sensor.is_on is False
 
     # Test Sleep Mode On

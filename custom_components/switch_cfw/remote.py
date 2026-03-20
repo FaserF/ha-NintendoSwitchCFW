@@ -29,9 +29,7 @@ class SwitchRemote(SwitchEntity, RemoteEntity):
     """Representation of a Nintendo Switch remote."""
 
     _attr_translation_key = "remote"
-    _attr_supported_features = (
-        RemoteEntityFeature.RECALL_SCENE | RemoteEntityFeature.ACTIVITY
-    )
+    _attr_supported_features = RemoteEntityFeature.ACTIVITY
 
     def __init__(self, coordinator: SwitchDataUpdateCoordinator) -> None:
         """Initialize the remote."""

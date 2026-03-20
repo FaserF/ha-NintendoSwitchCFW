@@ -3,7 +3,7 @@
 import pytest
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import UpdateFailed
-from custom_components.switch_cfw.coordinator import SwitchCoordinator
+from custom_components.switch_cfw.coordinator import SwitchDataUpdateCoordinator
 
 
 @pytest.mark.asyncio

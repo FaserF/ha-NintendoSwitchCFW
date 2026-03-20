@@ -16,6 +16,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, LOGGER, ATTR_APP_VERSION
 from .coordinator import SwitchDataUpdateCoordinator
+from .entity import SwitchEntity
 
 
 async def async_setup_entry(
@@ -33,7 +34,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class SwitchUpdateEntity(CoordinatorEntity[SwitchDataUpdateCoordinator], UpdateEntity):
+class SwitchUpdateEntity(SwitchEntity, UpdateEntity):
     """Base class for Switch update entities."""
 
     _attr_has_entity_name = True
@@ -43,7 +44,6 @@ class SwitchUpdateEntity(CoordinatorEntity[SwitchDataUpdateCoordinator], UpdateE
     def __init__(self, coordinator: SwitchDataUpdateCoordinator) -> None:
         """Initialize the update entity."""
         super().__init__(coordinator)
-        self._attr_device_info = coordinator.device_info
 
 
 class SwitchSystemUpdate(SwitchUpdateEntity):
@@ -54,7 +54,7 @@ class SwitchSystemUpdate(SwitchUpdateEntity):
     def __init__(self, coordinator: SwitchDataUpdateCoordinator) -> None:
         """Initialize the system update entity."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_firmware"
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_firmware"
 
     @property
     def installed_version(self) -> str | None:
@@ -82,7 +82,7 @@ class SwitchAppUpdate(SwitchUpdateEntity):
     def __init__(self, coordinator: SwitchDataUpdateCoordinator) -> None:
         """Initialize the app update entity."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.entry_id}_app_update"
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_app_update"
         # For the app update, we'll use our own repo versioning
         self._repo = "FaserF/ha-NintendoSwitchCFW"
 

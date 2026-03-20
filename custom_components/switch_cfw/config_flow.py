@@ -8,8 +8,14 @@ import socket
 import aiohttp
 import voluptuous as vol
 
-from homeassistant import config_entries
 from homeassistant.components import network
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow as ConfigFlowBase,
+    ConfigFlowResult,
+    OptionsFlow,
+    ZeroconfServiceInfo,
+)
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
@@ -28,7 +34,7 @@ from .const import (
 )
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Nintendo Switch CFW."""
 
     VERSION = 1
@@ -40,13 +46,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
 
         if user_input is not None:
             if user_input.get("flow_type") == "manual":
                 return await self.async_step_manual_entry()
-            return await self.async_step_discovery()
+            return await self.async_step_select_device()
 
         return self.async_show_form(
             step_id="user",
@@ -59,9 +65,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
             ),
         )
 
-    async def async_step_discovery(
+    async def async_step_discovery(self, discovery_info: dict[str, Any]) -> ConfigFlowResult:
+        """Handle discovery."""
+        return await self.async_step_select_device()
+
+    async def async_step_select_device(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Scan for Nintendo Switch consoles in the background."""
         if user_input is not None:
             # We already have discovered devices, let the user select one
@@ -194,7 +204,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
                     self._host,
                     err.status,
                 )
-            except aiohttp.ClientError, asyncio.TimeoutError:
+            except (aiohttp.ClientError, asyncio.TimeoutError):
                 errors["base"] = "cannot_connect"
                 LOGGER.error("Manual connection to %s timed out or failed", self._host)
             except Exception as err:
@@ -221,8 +231,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
         )
 
     async def async_step_zeroconf(
-        self, discovery_info: config_entries.ZeroconfServiceInfo
-    ) -> FlowResult:
+        self, discovery_info: ZeroconfServiceInfo
+    ) -> ConfigFlowResult:
         """Handle zeroconf discovery."""
         self._host = discovery_info.host
         self._name = "Nintendo Switch"
@@ -282,7 +292,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
                     self._host,
                     err.status,
                 )
-            except aiohttp.ClientError, asyncio.TimeoutError:
+            except (aiohttp.ClientError, asyncio.TimeoutError):
                 errors["base"] = "cannot_connect"
                 LOGGER.error(
                     "Discovery confirmation for %s timed out or failed", self._host
@@ -304,22 +314,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
     @staticmethod
     @callback
     def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
+        config_entry: ConfigEntry,
+    ) -> OptionsFlow:
         """Create the options flow."""
         return OptionsFlowHandler(config_entry)
 
 
-class OptionsFlowHandler(config_entries.OptionsFlow):
+class OptionsFlowHandler(OptionsFlow):
     """Handle an options flow for Nintendo Switch CFW."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)

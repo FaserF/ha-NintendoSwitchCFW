@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from typing import cast
 from .const import DOMAIN, LOGGER
 from .coordinator import SwitchDataUpdateCoordinator
+from .entity import SwitchEntity
 
 
 async def async_setup_entry(
@@ -24,7 +25,7 @@ async def async_setup_entry(
     async_add_entities([SwitchGameSelect(coordinator)])
 
 
-class SwitchGameSelect(CoordinatorEntity[SwitchDataUpdateCoordinator], SelectEntity):
+class SwitchGameSelect(SwitchEntity, SelectEntity):
     """Representation of an installed game select entity."""
 
     _attr_translation_key = "game_list"
@@ -33,8 +34,7 @@ class SwitchGameSelect(CoordinatorEntity[SwitchDataUpdateCoordinator], SelectEnt
     def __init__(self, coordinator: SwitchDataUpdateCoordinator) -> None:
         """Initialize the select entity."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_games"
-        self._attr_device_info = coordinator.device_info
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_games"
         self._titles: dict[str, str] = {}  # Name -> ID
 
     @property

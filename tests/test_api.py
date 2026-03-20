@@ -12,20 +12,20 @@ async def test_api_get_info():
 
     mock_response = MagicMock()
     mock_response.status = 200
-    mock_response.json = MagicMock(return_value={"firmware": "17.0.1"})
+    mock_response.json = MagicMock(return_value={"firmware_version": "17.0.1"})
 
     with patch(
         "aiohttp.ClientSession.get",
         return_value=MagicMock(__aenter__=MagicMock(return_value=mock_response)),
     ):
         info = await api.get_info()
-        assert info["firmware"] == "17.0.1"
+        assert info["firmware_version"] == "17.0.1"
 
 
 @pytest.mark.asyncio
 async def test_api_reboot():
     """Test reboot method."""
-    api = SwitchAPI("1.2.3.4")
+    api = SwitchAPI("1.2.3.4", "test_token")
 
     mock_response = MagicMock()
     mock_response.status = 200

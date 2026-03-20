@@ -7,7 +7,9 @@ SOURCES		:=	.
 INCLUDES	:=	include
 
 #---------------------------------------------------------------------------------
-PREFIX	:=	aarch64-none-elf-
+DEVKITPRO	?=	/opt/devkitpro
+PREFIX		:=	$(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-
+
 CC		:=	$(PREFIX)gcc
 CXX		:=	$(PREFIX)g++
 LD		:=	$(PREFIX)gcc

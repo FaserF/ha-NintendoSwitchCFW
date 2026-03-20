@@ -7,7 +7,10 @@ SOURCES		:=	.
 INCLUDES	:=	include
 
 #---------------------------------------------------------------------------------
-PREFIX	:=	aarch64-none-elf-
+DEVKITPRO	?=	/opt/devkitpro
+PREFIX		:=	$(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-
+ARCH		:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=el0 -fPIE
+
 CC		:=	$(PREFIX)gcc
 CXX		:=	$(PREFIX)g++
 LD		:=	$(PREFIX)gcc

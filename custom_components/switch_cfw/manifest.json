@@ -1,16 +1,21 @@
 {
   "domain": "switch_cfw",
   "name": "Nintendo Switch CFW",
+  "after_dependencies": [
+    "network"
+  ],
   "codeowners": [
     "@FaserF"
   ],
   "config_flow": true,
-  "after_dependencies": [
-    "network"
+  "dhcp": [
+    {
+      "hostname": "switch-*"
+    }
   ],
   "documentation": "https://github.com/FaserF/ha-NintendoSwitchCFW",
   "integration_type": "hub",
-  "iot_class": "local_push",
+  "iot_class": "local_polling",
   "issue_tracker": "https://github.com/FaserF/ha-NintendoSwitchCFW/issues",
   "loggers": [
     "switch_cfw"
@@ -21,11 +26,6 @@
     {
       "type": "_http._tcp.local.",
       "name": "switch-*"
-    }
-  ],
-  "dhcp": [
-    {
-      "hostname": "switch-*"
     }
   ]
 }

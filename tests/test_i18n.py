@@ -139,6 +139,9 @@ def test_switch_hardcoded_strings():
                                             "Service Port",
                                             "Buttons:",
                                             "Booting v",
+                                            "Brought to you by",
+                                            "Downloading",
+                                            "Automatic update",
                                         ]
                                     )
                                 ):

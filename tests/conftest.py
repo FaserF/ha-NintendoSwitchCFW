@@ -36,7 +36,9 @@ def mock_config_entry():
 @pytest.fixture
 def mock_switch_api():
     """Mock the Switch API client."""
-    with patch("custom_components.switch_cfw.api.SwitchAPI", autospec=True) as mock:
+    with patch(
+        "custom_components.switch_cfw.coordinator.SwitchAPI", autospec=True
+    ) as mock:
         client = mock.return_value
         # Removed unsupported __init__ mocking
         client.get_info = AsyncMock(

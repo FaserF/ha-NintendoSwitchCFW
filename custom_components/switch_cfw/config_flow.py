@@ -17,7 +17,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
+
 
 # ZeroconfServiceInfo location depends on Home Assistant version
 try:
@@ -152,7 +152,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
 
     async def async_step_manual_entry(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle manual IP entry."""
 
         errors: dict[str, str] = {}
@@ -250,7 +250,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
 
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Confirm discovery and get security token."""
 
         errors: dict[str, str] = {}
@@ -321,7 +321,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
         config_entry: ConfigEntry,
     ) -> OptionsFlow:
         """Create the options flow."""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
 
 class OptionsFlowHandler(OptionsFlow):

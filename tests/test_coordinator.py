@@ -33,7 +33,9 @@ async def test_coordinator_sleep_mode(mock_hass, mock_config_entry, mock_switch_
     assert coordinator.sleep_mode is False
 
     # 2. API fails - should enter sleep mode
-    mock_switch_api.get_info.side_effect = Exception("Connection error")
+    import aiohttp
+
+    mock_switch_api.get_info.side_effect = aiohttp.ClientError("Connection error")
     data = await coordinator._async_update_data()
 
     assert coordinator.sleep_mode is True

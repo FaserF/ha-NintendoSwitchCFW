@@ -123,6 +123,16 @@ def test_switch_hardcoded_strings():
                                             "    ",
                                             "Launching title ID",
                                             "Failed to launch",
+                                            "Press (",
+                                            "(X)",
+                                            "(Y)",
+                                            "(+)",
+                                            "Exit Application",
+                                            "Brought to you by",
+                                            "Downloading update",
+                                            "Automatic update",
+                                            "running the latest version",
+                                            "Error checking for updates",
                                         )
                                     )
                                     and not any(
@@ -139,9 +149,7 @@ def test_switch_hardcoded_strings():
                                             "Service Port",
                                             "Buttons:",
                                             "Booting v",
-                                            "Brought to you by",
-                                            "Downloading",
-                                            "Automatic update",
+                                            "New Version Available",
                                         ]
                                     )
                                 ):

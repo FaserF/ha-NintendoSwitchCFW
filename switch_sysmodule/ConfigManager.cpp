@@ -93,7 +93,7 @@ long ConfigManager::getLastUpdateCheck() { return m_lastUpdateCheck; }
 void ConfigManager::setLastUpdateCheck(long timestamp) { m_lastUpdateCheck = timestamp; }
 
 void ConfigManager::generateDefaultConfig() {
-    generatePassphrase(m_apiToken, sizeof(m_apiToken));
+    strncpy(m_apiToken, "Magic-Pixel-21", sizeof(m_apiToken) - 1);
     m_port = 1337;
 }
 

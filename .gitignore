@@ -36,3 +36,4 @@ Thumbs.db
 .vscode/
 .gemini/
 logo_final.png
+scripts/deploy_emulator.ps1

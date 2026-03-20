@@ -83,11 +83,13 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
     ) -> ConfigFlowResult:
         """Scan for Nintendo Switch consoles in the background."""
         if user_input is not None:
-            # We already have discovered devices, let the user select one
-            if user_input.get("device"):
-                self._host = user_input["device"]
+            # If no device was selected (happens when clicking submit on "no devices found" screen),
+            # redirect to manual entry.
+            if device := user_input.get("device"):
+                self._host = device
                 self._name = "Nintendo Switch"
                 return await self.async_step_discovery_confirm()
+            return await self.async_step_manual_entry()
 
         # Perform scanning
         potential_hosts: set[str] = set()
@@ -213,7 +215,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except aiohttp.ClientError, asyncio.TimeoutError:
+            except (aiohttp.ClientError, asyncio.TimeoutError):
                 errors["base"] = "cannot_connect"
                 LOGGER.error("Manual connection to %s timed out or failed", self._host)
             except Exception as err:
@@ -301,7 +303,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except aiohttp.ClientError, asyncio.TimeoutError:
+            except (aiohttp.ClientError, asyncio.TimeoutError):
                 errors["base"] = "cannot_connect"
                 LOGGER.error(
                     "Discovery confirmation for %s timed out or failed", self._host

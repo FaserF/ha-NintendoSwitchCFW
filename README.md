@@ -94,8 +94,8 @@ This integration is designed for Nintendo Switch consoles running Atmosphere Cus
 
 To allow Home Assistant to communicate with your Switch, you must install the background sysmodule and the companion configuration app.
 1. Download the latest `main` (background service), `main.npdm` (boot descriptor) and `homeassistant.nro` (config app) from the [Releases page](https://github.com/FaserF/ha-NintendoSwitchCFW/releases).
-2. On your SD card, create the folder: `/atmosphere/contents/4200000000000001/exefs/`.
-3. Copy `main` and `main.npdm` to: `/atmosphere/contents/4200000000000001/exefs/`.
+2. On your SD card, create the folder: `/atmosphere/contents/42000000000000FF/exefs/`.
+3. Copy `main` and `main.npdm` to: `/atmosphere/contents/42000000000000FF/exefs/`.
 4. Copy `homeassistant.nro` to: `/switch/homeassistant.nro`.
 5. Reboot your Switch.
 
@@ -239,7 +239,30 @@ action:
 ```
 </details>
 
-## 🧑‍💻 Development & Releases
+---
+
+## 🧑‍💻 Development & USB Debugging
+
+For developers or advanced users troubleshooting connection issues, the companion app includes a **Developer Mode** that streams live logs over USB.
+
+### Enabling Developer Mode
+1. Connect your Nintendo Switch to your PC via a USB-C cable.
+2. Open the **HomeAssistant Switch** app on your console.
+3. Press **MINUS (-)**.
+4. You will see a pink `[ DEV MODE ACTIVE (USB) ]` status on the screen and a message in the logs.
+
+### Accessing Live Logs (PC Side)
+Once Developer Mode is active, you can view the live console output on your PC using the `nxlink` tool from the **devkitPro** toolchain:
+
+```bash
+# Listen for logs over USB
+nxlink -u -s
+```
+
+> [!NOTE]
+> Developer Mode is intended for advanced troubleshooting. It may slightly increase battery consumption while active.
+
+## 🧑‍💻 Project Infrastructure
 
 This project uses an automated release workflow.
 - Releases are tagged automatically.

@@ -34,10 +34,12 @@ def update_files(new_version):
     if os.path.exists(const_path):
         with open(const_path) as f:
             content = f.read()
-        # Update Startup Message Version
-        content = re.sub(
-            r"Version: \d+\.\d+\.\d+(-beta\.\d+)?", f"Version: {new_version}", content
-        )
+        # Update all typical version locations in const.py
+        content = re.sub(r'Version: \d+\.\d+\.\d+(-[a-z0-9.]+)?', f'Version: {new_version}', content)
+        content = re.sub(r'ATTR_FIRMWARE_VERSION = "[^"]+"', f'ATTR_FIRMWARE_VERSION = "{new_version}"', content)
+        content = re.sub(r'ATTR_LATEST_VERSION = "[^"]+"', f'ATTR_LATEST_VERSION = "{new_version}"', content)
+        content = re.sub(r'ATTR_APP_VERSION = "[^"]+"', f'ATTR_APP_VERSION = "{new_version}"', content)
+        content = re.sub(r'MIN_APP_VERSION = "[^"]+"', f'MIN_APP_VERSION = "{new_version}"', content)
         # Update VERSION constant if it exists
         content = re.sub(
             r'VERSION\s*=\s*"[^"]+"', f'VERSION = "{new_version}"', content
@@ -46,8 +48,18 @@ def update_files(new_version):
             f.write(content)
         print("- Updated const.py")
 
-    # Update switch_sysmodule Makefile and/or include/SysmoduleConstants.h if version is there
-    # Currently sysmodule uses APP_VERSION define from Makefile
+    # Update switch_sysmodule/homeassistant_sysmodule.json
+    sys_json_path = "switch_sysmodule/homeassistant_sysmodule.json"
+    if os.path.exists(sys_json_path):
+        with open(sys_json_path) as f:
+            sys_json = json.load(f)
+        sys_json["version"] = new_version
+        with open(sys_json_path, "w") as f:
+            json.dump(sys_json, f, indent=4)
+            f.write("\n")
+        print("- Updated switch_sysmodule/homeassistant_sysmodule.json")
+
+    # Update switch_sysmodule Makefile
     sys_makefile = "switch_sysmodule/Makefile"
     if os.path.exists(sys_makefile):
         with open(sys_makefile) as f:

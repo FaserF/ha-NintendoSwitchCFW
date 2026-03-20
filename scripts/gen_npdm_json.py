@@ -3,7 +3,7 @@ import json
 
 def main():
     output_path = "switch_sysmodule/main.json"
-    sys_id = "0x4200000000000001"
+    sys_id = "0x42000000000000FF"
 
     # Manual, bare-minimum robust JSON that avoids template bugs
     data = {
@@ -19,10 +19,12 @@ def main():
         "is_retail": True,
         "pool_partition": 2,
         "is_64_bit": True,
-        "address_space_type": 1,
+        "address_space_type": 3,
         "filesystem_access": {"permissions": "0xffffffffffffffff"},
-        "service_access": ["*"],
-        "service_host": ["*"],
+        "service_access": [
+            "set:sys", "psm", "ts", "nifm:u", "nifm:s", "pdm:qry", "ns:am2", "appletOE", "appletAE", "hiddbg", "bsd:u", "bsd:s", "hid"
+        ],
+        "service_host": [],
         "kernel_capabilities": [
             {
                 "type": "kernel_flags",
@@ -36,10 +38,60 @@ def main():
             {
                 "type": "syscalls",
                 "value": {
-                    "svcConnectToNamedPort": "0x1f",
-                    "svcSendSyncRequest": "0x21",
+                    "svcSetHeapSize": "0x01",
+                    "svcSetMemoryPermission": "0x02",
+                    "svcSetMemoryAttribute": "0x03",
+                    "svcMapMemory": "0x04",
+                    "svcUnmapMemory": "0x05",
+                    "svcQueryMemory": "0x06",
+                    "svcExitProcess": "0x07",
+                    "svcCreateThread": "0x08",
+                    "svcStartThread": "0x09",
+                    "svcExitThread": "0x0a",
+                    "svcSleepThread": "0x0b",
+                    "svcGetThreadPriority": "0x0c",
+                    "svcSetThreadPriority": "0x0d",
+                    "svcGetThreadCoreMask": "0x0e",
+                    "svcSetThreadCoreMask": "0x0f",
+                    "svcGetCurrentProcessorNumber": "0x10",
+                    "svcSignalEvent": "0x11",
+                    "svcClearEvent": "0x12",
+                    "svcMapSharedMemory": "0x13",
+                    "svcUnmapSharedMemory": "0x14",
+                    "svcCreateTransferMemory": "0x15",
                     "svcCloseHandle": "0x16",
+                    "svcResetSignal": "0x17",
+                    "svcWaitSynchronization": "0x18",
+                    "svcCancelSynchronization": "0x19",
+                    "svcArbitrateLock": "0x1a",
+                    "svcArbitrateUnlock": "0x1b",
+                    "svcWaitProcessWideKeyAtomic": "0x1c",
+                    "svcSignalProcessWideKey": "0x1d",
+                    "svcGetSystemTick": "0x1e",
+                    "svcConnectToNamedPort": "0x1f",
+                    "svcSendSyncRequestLight": "0x20",
+                    "svcSendSyncRequest": "0x21",
+                    "svcSendSyncRequestWithUserBuffer": "0x22",
+                    "svcSendAsyncRequestWithUserBuffer": "0x23",
+                    "svcGetProcessId": "0x24",
+                    "svcGetThreadId": "0x25",
+                    "svcBreak": "0x26",
+                    "svcOutputDebugString": "0x27",
+                    "svcReturnFromException": "0x28",
                     "svcGetInfo": "0x29",
+                    "svcFlushProcessDataCache": "0x2a",
+                    "svcRequestAtomicMemoryUpdate": "0x2b",
+                    "svcGetDebugEvent": "0x2c",
+                    "svcContinueDebugEvent": "0x2d",
+                    "svcGetProcessList": "0x2e",
+                    "svcGetThreadList": "0x2f",
+                    "svcGetDebugThreadContext": "0x30",
+                    "svcSetDebugThreadContext": "0x31",
+                    "svcQueryDebugProcessMemory": "0x32",
+                    "svcReadDebugProcessMemory": "0x33",
+                    "svcWriteDebugProcessMemory": "0x34",
+                    "svcSetHardwareBreakPoint": "0x35",
+                    "svcGetDebugThreadParam": "0x36"
                 },
             },
             {"type": "min_kernel_version", "value": "0x0030"},

@@ -21,6 +21,23 @@
 #include <fcntl.h>
 
 extern "C" {
+    u32 __check_mask_save;
+    
+    // Sysmodules must define their own heap
+    void __libnx_initheap(void) {
+        static char inner_heap[0x100000]; // 1MB heap
+        extern char* fake_heap_start;
+        extern char* fake_heap_end;
+        fake_heap_start = inner_heap;
+        fake_heap_end   = inner_heap + sizeof(inner_heap);
+    }
+}
+
+// Optimization flags for sysmodules
+u32 __nx_applet_type = AppletType_None;
+u32 __nx_fs_num_sessions = 1;
+
+extern "C" {
     Result hiddbgSetAutoPilotVirtualPadState(s8 AbstractedVirtualPadId, const HiddbgAbstractedPadState *state);
 }
 
@@ -30,8 +47,20 @@ extern "C" {
 Logger g_logger;
 
 void handle_client(int client_sock) {
-    char buffer[1024] = {0};
-    int bytes_read = read(client_sock, buffer, sizeof(buffer) - 1);
+    struct timeval tv;
+    tv.tv_sec = 2; // 2s timeout
+    tv.tv_usec = 0;
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(client_sock, &readfds);
+
+    if (select(client_sock + 1, &readfds, NULL, NULL, &tv) <= 0) {
+        close(client_sock);
+        return;
+    }
+
+    char buffer[2048] = {0};
+    int bytes_read = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
     if (bytes_read <= 0) {
         close(client_sock);
         return;
@@ -89,8 +118,9 @@ void handle_client(int client_sock) {
                 u64 actual_size = 0;
                 if (R_SUCCEEDED(nsGetApplicationControlData(NsApplicationControlSource_Storage, title_id, controlData, sizeof(NsApplicationControlData), &actual_size))) {
                     NacpLanguageEntry* langentry = NULL;
-                    if (R_SUCCEEDED(nacpGetLanguageEntry(&controlData->nacp, &langentry)) && langentry) {
+                    if (R_SUCCEEDED(nacpGetLanguageEntry(&controlData->nacp, &langentry))) {
                         strncpy(title_name, langentry->name, sizeof(title_name) - 1);
+                        title_name[sizeof(title_name) - 1] = '\0';
                     }
                 }
                 free(controlData);
@@ -105,14 +135,14 @@ void handle_client(int client_sock) {
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n"
             "{\"firmware_version\": \"%u.%u.%u\", \"app_version\": \"" APP_VERSION "\", \"battery_level\": %u, \"charging\": %s, "
             "\"cpu_temp\": %d, \"gpu_temp\": %d, \"skin_temp\": %d, "
-            "\"uptime\": %llu, \"wifi_rssi\": %u, \"mem_total\": %llu, \"mem_used\": %llu, "
-            "\"sd_total\": %llu, \"sd_free\": %llu, \"current_title_id\": \"0x%016llX\", "
+            "\"uptime\": %lu, \"wifi_rssi\": %u, \"mem_total\": %lu, \"mem_used\": %lu, "
+            "\"sd_total\": %lu, \"sd_free\": %lu, \"current_title_id\": \"0x%016lX\", "
             "\"current_game\": \"%s\", \"docked\": %s, \"sleep_mode\": %s, \"error_count\": %u}",
             (unsigned int)((hos_version >> 16) & 0xFF), (unsigned int)((hos_version >> 8) & 0xFF), (unsigned int)(hos_version & 0xFF),
             (unsigned int)battery_percent, (charger_type != 0) ? "true" : "false",
             (int)(cpu_temp / 1000), (int)(gpu_temp / 1000), (int)(skin_temp / 1000),
-            (unsigned long long)uptime_s, (unsigned int)rssi, (unsigned long long)total_mem, (unsigned long long)used_mem,
-            (unsigned long long)sd_total, (unsigned long long)sd_free, (unsigned long long)title_id,
+            (unsigned long)uptime_s, (unsigned int)rssi, (unsigned long)total_mem, (unsigned long)used_mem,
+            (unsigned long)sd_total, (unsigned long)sd_free, (unsigned long)title_id,
             title_name, (is_docked) ? "true" : "false", (is_sleeping) ? "true" : "false",
             (unsigned int)Logger::getInstance().getErrorCount()
         );
@@ -139,11 +169,11 @@ void handle_client(int client_sock) {
                             char title_name[0x201] = {0};
                             NacpLanguageEntry* langentry = NULL;
                             if (R_SUCCEEDED(nacpGetLanguageEntry(&controlData->nacp, &langentry)) && langentry) {
-                                strncpy(title_name, langentry->name, sizeof(title_name) - 1);
-                            }
+                        snprintf(title_name, sizeof(title_name), "%s", langentry->name);
+                    }
                             if (!first) strcat(json_out, ",");
                             char entry[1024];
-                            snprintf(entry, sizeof(entry), "{\"title_id\": \"0x%016llX\", \"name\": \"%s\"}", (unsigned long long)records[i].application_id, title_name);
+                            snprintf(entry, sizeof(entry), "{\"title_id\": \"0x%016lX\", \"name\": \"%s\"}", (unsigned long)records[i].application_id, title_name);
                             strcat(json_out, entry);
                             first = false;
                         }
@@ -219,12 +249,12 @@ void handle_client(int client_sock) {
             const char *resp = "HTTP/1.1 200 OK\r\n\r\n{\"status\": \"ok\"}";
             write(client_sock, resp, strlen(resp));
             char log_msg[128];
-            snprintf(log_msg, sizeof(log_msg), "Launching title ID: 0x%016llX", (unsigned long long)tid);
+            snprintf(log_msg, sizeof(log_msg), "Launching title ID: 0x%016lX", (unsigned long)tid);
             LOG_I(log_msg);
             pmshellInitialize();
             NcmProgramLocation loc = {tid, NcmStorageId_None};
             if (R_FAILED(pmshellLaunchProgram(0, &loc, NULL))) {
-                snprintf(log_msg, sizeof(log_msg), "Failed to launch title ID: 0x%016llX", (unsigned long long)tid);
+                snprintf(log_msg, sizeof(log_msg), "Failed to launch title ID: 0x%016lX", (unsigned long)tid);
                 LOG_E(log_msg);
             }
             pmshellExit();
@@ -302,17 +332,30 @@ int main(int argc, char **argv) {
     LOG_I("Home Assistant Sysmodule started (v" APP_VERSION ")");
     ConfigManager::getInstance().load();
 
+    const SocketInitConfig* default_cfg = socketGetDefaultInitConfig();
+    SocketInitConfig sock_cfg = *default_cfg;
+    sock_cfg.bsd_service_type = BsdServiceType_System;
+
+    if (R_FAILED(socketInitialize(&sock_cfg))) {
+        LOG_E("Failed to initialize sockets");
+        return 1;
+    }
+
     int server_fd, client_sock;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) return 1;
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        LOG_E("Failed to create socket");
+        socketExit();
+        return 1;
+    }
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     memset(&address, 0, sizeof(address));
     address.sin_family = AF_INET;
-    address.sin_port = htons(1337);
+    address.sin_port = htons(ConfigManager::getInstance().getPort());
     address.sin_addr.s_addr = INADDR_ANY;
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
         LOG_E("Failed to bind socket");
@@ -328,6 +371,9 @@ int main(int argc, char **argv) {
     fcntl(server_fd, F_SETFL, flags | O_NONBLOCK);
 
     int mdns_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (mdns_sock < 0) {
+        LOG_E("Failed to create mDNS socket");
+    }
     struct sockaddr_in mdns_addr;
     mdns_addr.sin_family = AF_INET;
     mdns_addr.sin_port = htons(5353);
@@ -337,20 +383,25 @@ int main(int argc, char **argv) {
 
     while (true) {
         u64 now = svcGetSystemTick() / 19200000;
-        if (now - last_mdns > 60) {
+        if (now - last_mdns > 10) { // Every 10 seconds
             unsigned char packet[] = {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x06, 's', 'w', 'i', 't', 'c', 'h', 0x05, 'l', 'o', 'c', 'a', 'l', 0x00,
                 0x00, 0x0c, 0x00, 0x01
             };
-            sendto(mdns_sock, packet, sizeof(packet), 0, (struct sockaddr *)&mdns_addr, sizeof(mdns_addr));
+            if (mdns_sock >= 0) {
+                sendto(mdns_sock, packet, sizeof(packet), 0, (struct sockaddr *)&mdns_addr, sizeof(mdns_addr));
+            }
+            char heartbeat[64];
+            snprintf(heartbeat, sizeof(heartbeat), "Sysmodule Heartbeat (Up: %lus)", (unsigned long)now);
+            Logger::getInstance().log(LOG_LEVEL_INFO, heartbeat);
             last_mdns = now;
         }
 
         if ((client_sock = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) >= 0) {
             handle_client(client_sock);
         }
-        usleep(100000);
+        svcSleepThread(10000000ULL); // 10ms sleep
     }
 
     hiddbgExit();
@@ -361,5 +412,6 @@ int main(int argc, char **argv) {
     tsExit();
     setsysExit();
     psmExit();
+    socketExit();
     return 0;
 }

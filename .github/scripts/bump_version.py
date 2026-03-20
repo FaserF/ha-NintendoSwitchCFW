@@ -98,14 +98,17 @@ def update_files(new_version):
     if os.path.exists(const_path):
         with open(const_path) as f:
             content = f.read()
-        content = re.sub(
-            r"Version: \d+\.\d+\.\d+(-beta\.\d+)?", f"Version: {new_version}", content
-        )
+        # Update all typical version locations in const.py
+        content = re.sub(r'Version: \d+\.\d+\.\d+(-[a-z0-9.]+)?', f'Version: {new_version}', content)
+        content = re.sub(r'ATTR_FIRMWARE_VERSION = "[^"]+"', f'ATTR_FIRMWARE_VERSION = "{new_version}"', content)
+        content = re.sub(r'ATTR_LATEST_VERSION = "[^"]+"', f'ATTR_LATEST_VERSION = "{new_version}"', content)
+        content = re.sub(r'ATTR_APP_VERSION = "[^"]+"', f'ATTR_APP_VERSION = "{new_version}"', content)
+        content = re.sub(r'MIN_APP_VERSION = "[^"]+"', f'MIN_APP_VERSION = "{new_version}"', content)
         with open(const_path, "w") as f:
             f.write(content)
 
-    # Update ha_switch_sysmodule.json
-    sys_json_path = "switch_sysmodule/ha_switch_sysmodule.json"
+    # Update switch_sysmodule/homeassistant_sysmodule.json
+    sys_json_path = "switch_sysmodule/homeassistant_sysmodule.json"
     if os.path.exists(sys_json_path):
         with open(sys_json_path) as f:
             sys_json = json.load(f)
@@ -114,13 +117,27 @@ def update_files(new_version):
             json.dump(sys_json, f, indent=4)
             f.write("\n")
 
+    # Update switch_sysmodule Makefile
+    sys_makefile = "switch_sysmodule/Makefile"
+    if os.path.exists(sys_makefile):
+        with open(sys_makefile) as f:
+            content = f.read()
+        content = re.sub(
+            r"APP_VERSION\s*?[:?]?=\s*?.*",
+            f"APP_VERSION\t:=\t{new_version}",
+            content,
+            count=1,
+        )
+        with open(sys_makefile, "w") as f:
+            f.write(content)
+
     # Update switch_app Makefile
     app_makefile_path = "switch_app/Makefile"
     if os.path.exists(app_makefile_path):
         with open(app_makefile_path) as f:
             content = f.read()
         content = re.sub(
-            r"VERSION\s*?=\s*?.*", f"VERSION\t?=\t{new_version}", content, count=1
+            r"VERSION\s*?[:?]?=\s*?.*", f"VERSION\t?=\t{new_version}", content, count=1
         )
         with open(app_makefile_path, "w") as f:
             f.write(content)

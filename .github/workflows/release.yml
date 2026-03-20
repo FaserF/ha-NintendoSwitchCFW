@@ -43,6 +43,10 @@ jobs:
       - name: Set up Python
         run: uv python install 3.14
 
+      - name: Convert to LF
+        run: |
+          find . -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "Makefile" -o -name "*.json" -o -name "*.ps1" \) -exec sed -i 's/\r$//' {} +
+
       - name: Update Version
         id: versioning
         run: |
@@ -56,11 +60,7 @@ jobs:
           fi
           
           # Inject version into all relevant files
-          sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" custom_components/switch_cfw/manifest.json
-          sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
-          sed -i "s/Version: .*/Version: $NEW_VERSION/" custom_components/switch_cfw/const.py
-          sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" switch_sysmodule/homeassistant_sysmodule.json
-          sed -i "s/VERSION	?=.*/VERSION	?=	$NEW_VERSION/" switch_app/Makefile
+          python scripts/set_version.py "$NEW_VERSION"
           
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -195,3 +195,24 @@ jobs:
             switch_app/homeassistant.nro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🚀 Prepare for next dev cycle
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Pull latest main to avoid conflicts
+          git pull origin main
+          
+          # Bump patch version for the next cycle
+          python .github/scripts/bump_version.py patch stable
+          NEXT_VER=$(cat VERSION.txt)
+          NEXT_DEV_VER="${NEXT_VER}-dev"
+          rm VERSION.txt
+          
+          # Inject the new -dev version into all files
+          python scripts/set_version.py "$NEXT_DEV_VER"
+          
+          git add .
+          git commit -m "chore: prepare for next dev cycle v$NEXT_DEV_VER [skip ci]"
+          git push origin main

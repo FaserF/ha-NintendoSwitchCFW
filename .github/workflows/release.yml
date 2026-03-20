@@ -162,7 +162,7 @@ jobs:
       - name: Build Nintendo Switch Components
         uses: docker://devkitpro/devkita64:latest
         with:
-          args: /bin/bash -c "python3 scripts/gen_npdm_json.py && cd switch_sysmodule && make APP_VERSION=${{ env.NEW_VERSION }} && /opt/devkitpro/tools/bin/npdmtool main.json main.npdm && cp homeassistant_sysmodule.nso main && cd ../switch_app && make VERSION=${{ env.NEW_VERSION }}"
+          args: /bin/bash -c "export PATH=$PATH:/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin && python3 scripts/gen_npdm_json.py && cd switch_sysmodule && make APP_VERSION=${{ env.NEW_VERSION }} && /opt/devkitpro/tools/bin/npdmtool main.json main.npdm && cp homeassistant_sysmodule.nso main && cd ../switch_app && make VERSION=${{ env.NEW_VERSION }}"
 
       - name: Package HA Integration
         run: |

@@ -61,7 +61,7 @@ async def test_coordinator_initial_failure(
     mock_hass, mock_config_entry, mock_switch_api
 ):
     """Test failure on very first update (no last data)."""
-    coordinator = SwitchCoordinator(mock_hass, mock_config_entry)
+    coordinator = SwitchDataUpdateCoordinator(mock_hass, mock_config_entry)
     mock_switch_api.get_info.side_effect = Exception("Initial connection error")
 
     with pytest.raises(UpdateFailed):

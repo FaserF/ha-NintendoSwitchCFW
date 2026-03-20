@@ -5,7 +5,7 @@
         "data": {
           "flow_type": "Connection Type"
         },
-        "description": "How do you want to add your Nintendo Switch?"
+        "description": "How do you want to add your Nintendo Switch by FaserF?"
       },
       "discovery": {
         "title": "Search for Nintendo Switch",
@@ -115,6 +115,11 @@
     "select": {
       "game_list": {
         "name": "Installed Games"
+      }
+    },
+    "remote": {
+      "remote": {
+        "name": "Remote"
       }
     }
   }

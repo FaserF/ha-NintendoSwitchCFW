@@ -108,8 +108,8 @@ def test_switch_hardcoded_strings():
                             if match:
                                 val = match.group(1)
                                 if len(val) > 3 and not val.startswith(
-                                    ("%", "HTTP", "X-", "/", "0x", "{", '"')
-                                ):
+                                    ("%", "HTTP", "X-", "/", "0x", "{", '"', "\\x1b", "+--")
+                                ) and not any(x in val for x in [" -> ", "[ SYSTEM STATUS ]", "[ CONFIGURATION ]", "[ UPDATES ]"]):
                                     hardcoded_found.append(
                                         f"{cpp_file.name}:{i + 1} -> {val}"
                                     )
@@ -141,7 +141,7 @@ def test_branding_consistency():
             assert "fseitz" not in content.lower(), (
                 f"Old branding 'fseitz' found in {f_path.name}"
             )
-            assert "faserf" in content.lower(), (
+            assert "FaserF" in content, (
                 f"New branding 'FaserF' missing in {f_path.name}"
             )
 

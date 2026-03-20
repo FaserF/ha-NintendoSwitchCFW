@@ -1,7 +1,7 @@
 """Tests for the Switch CFW select platform."""
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from custom_components.switch_cfw.select import SwitchGameSelect
 
 
@@ -51,7 +51,7 @@ async def test_game_select_action():
     _ = select.options
 
     with patch.object(
-        coordinator.api, "launch_title", return_value=True
+        coordinator.api, "launch_title", AsyncMock(return_value=True)
     ) as mock_launch:
         await select.async_select_option("Mario Kart 8")
         mock_launch.assert_called_once_with("0x0100000000001000")

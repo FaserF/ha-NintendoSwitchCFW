@@ -54,7 +54,10 @@ class DockedBinarySensor(SwitchEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return cast(bool | None, self.coordinator.data.get(ATTR_DOCK_STATUS))
+        val = self.coordinator.data.get(ATTR_DOCK_STATUS)
+        if val is None:
+            return None
+        return str(val).lower() == "docked"
 
 
 class SleepBinarySensor(SwitchEntity, BinarySensorEntity):

@@ -29,7 +29,7 @@ def mock_switch_api():
     """Mock the Switch API client."""
     with patch("custom_components.switch_cfw.api.SwitchAPI", autospec=True) as mock:
         client = mock.return_value
-        client.__init__ = MagicMock(return_value=None)
+        # Removed unsupported __init__ mocking
         client.get_info = AsyncMock(
             return_value={
                 "firmware_version": "17.0.1",

@@ -1,6 +1,6 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/FaserF/ha-NintendoSwitchCFW/main/logo.png" alt="Home Assistant Switch Logo" width="150">
-</div>
+<p align="center">
+  <img src="logo.png" alt="Home Assistant Switch Logo" width="150">
+</p>
 
 # Nintendo Switch CFW (for Home Assistant)
 

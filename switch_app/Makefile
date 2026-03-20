@@ -18,7 +18,7 @@ STRIP	:=	$(PREFIX)strip
 NM		:=	$(PREFIX)nm
 
 #---------------------------------------------------------------------------------
-VERSION	?=	0.2.3-MASTER
+VERSION	?=	0.2.4-MASTER
 ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=el0 -fPIE
 DEFINES	:=	-D__SWITCH__ -DAPP_VERSION=\"$(VERSION)\"
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections $(ARCH) $(DEFINES) -I$(CURDIR)/include -I$(DEVKITPRO)/libnx/include -I$(DEVKITPRO)/portlibs/switch/include -I$(CURDIR)/../switch_sysmodule/include

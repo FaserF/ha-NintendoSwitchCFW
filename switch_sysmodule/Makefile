@@ -19,7 +19,7 @@ STRIP	:=	$(PREFIX)strip
 NM		:=	$(PREFIX)nm
 
 #---------------------------------------------------------------------------------
-APP_VERSION	:=	0.2.3-MASTER
+APP_VERSION	:=	0.2.4-MASTER
 DEFINES	:=	-D__SWITCH__ -DAPP_VERSION=\"$(APP_VERSION)\"
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections -fPIE $(ARCH) $(DEFINES) -I$(CURDIR)/include -I$(DEVKITPRO)/libnx/include -I$(DEVKITPRO)/portlibs/switch/include
 CXXFLAGS:=	$(CFLAGS) -fno-rtti -fno-exceptions

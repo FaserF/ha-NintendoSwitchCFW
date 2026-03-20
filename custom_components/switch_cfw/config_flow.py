@@ -18,6 +18,7 @@ from homeassistant.config_entries import (
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+
 # ZeroconfServiceInfo location depends on Home Assistant version
 try:
     from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
@@ -207,7 +208,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+            except aiohttp.ClientError, asyncio.TimeoutError:
                 errors["base"] = "cannot_connect"
                 LOGGER.error("Manual connection to %s timed out or failed", self._host)
             except Exception as err:
@@ -295,7 +296,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+            except aiohttp.ClientError, asyncio.TimeoutError:
                 errors["base"] = "cannot_connect"
                 LOGGER.error(
                     "Discovery confirmation for %s timed out or failed", self._host

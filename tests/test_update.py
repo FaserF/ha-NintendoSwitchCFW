@@ -1,7 +1,7 @@
 """Tests for the Switch CFW update platform."""
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from custom_components.switch_cfw.update import SwitchAppUpdate, SwitchSystemUpdate
 
 
@@ -27,6 +27,8 @@ async def test_app_update():
     assert update.installed_version == "0.1.2"
     assert update.latest_version == "0.1.3"
 
-    with patch.object(coordinator.api, "update_app", return_value=True) as mock_update:
+    with patch.object(
+        coordinator.api, "update_app", AsyncMock(return_value=True)
+    ) as mock_update:
         await update.async_install(version="0.1.3", backup=False)
         mock_update.assert_called_once()

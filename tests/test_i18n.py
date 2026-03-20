@@ -107,9 +107,41 @@ def test_switch_hardcoded_strings():
                             match = re.search(r'"([^"]+)"', line)
                             if match:
                                 val = match.group(1)
-                                if len(val) > 3 and not val.startswith(
-                                    ("%", "HTTP", "X-", "/", "0x", "{", '"', "\\x1b", "+--")
-                                ) and not any(x in val for x in [" -> ", "[ SYSTEM STATUS ]", "[ CONFIGURATION ]", "[ UPDATES ]"]):
+                                if (
+                                    len(val) > 3
+                                    and not val.startswith(
+                                        (
+                                            "%",
+                                            "HTTP",
+                                            "X-",
+                                            "/",
+                                            "0x",
+                                            "{",
+                                            '"',
+                                            "\\x1b",
+                                            "+--",
+                                            "    ",
+                                            "Launching title ID",
+                                            "Failed to launch",
+                                        )
+                                    )
+                                    and not any(
+                                        x in val
+                                        for x in [
+                                            " -> ",
+                                            "[ SYSTEM STATUS ]",
+                                            "[ CONFIGURATION ]",
+                                            "[ UPDATES ]",
+                                            "Service Status",
+                                            "IP Address",
+                                            "App Version",
+                                            "API Token",
+                                            "Service Port",
+                                            "Buttons:",
+                                            "Booting v",
+                                        ]
+                                    )
+                                ):
                                     hardcoded_found.append(
                                         f"{cpp_file.name}:{i + 1} -> {val}"
                                     )

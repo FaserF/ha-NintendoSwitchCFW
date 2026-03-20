@@ -10,6 +10,15 @@ def mock_hass():
     """Mock HomeAssistant object."""
     hass = MagicMock()
     hass.data = {}
+
+    # Set the global hass for frame helper to avoid RuntimeError
+    try:
+        from homeassistant.helpers import frame
+
+        frame._hass.hass = hass
+    except ImportError, AttributeError:
+        pass
+
     return hass
 
 

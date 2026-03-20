@@ -2,7 +2,6 @@
   "config": {
     "step": {
       "user": {
-        "title": "Nintendo Switch hinzufügen",
         "data": {
           "flow_type": "Verbindungstyp"
         },

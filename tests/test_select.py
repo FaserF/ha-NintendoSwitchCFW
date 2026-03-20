@@ -43,9 +43,8 @@ async def test_game_select_current():
 async def test_game_select_action():
     """Test selecting a game triggers launch."""
     coordinator = MagicMock()
-    coordinator.data = {
-        "titles": [{"title_id": "0x0100000000001000", "name": "Mario Kart 8"}]
-    }
+    coordinator.async_request_refresh = AsyncMock()
+    coordinator.api.launch_title = AsyncMock(return_value=True)
 
     select = SwitchGameSelect(coordinator)
     _ = select.options

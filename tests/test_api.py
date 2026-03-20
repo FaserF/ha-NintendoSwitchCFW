@@ -13,10 +13,11 @@ async def test_api_get_info():
 
     mock_response = MagicMock()
     mock_response.status = 200
-    mock_response.json = MagicMock(return_value={"firmware_version": "17.0.1"})
+    mock_response.json = AsyncMock(return_value={"firmware_version": "17.0.1"})
 
     with patch.object(
-        mock_session, "get",
+        mock_session,
+        "get",
         return_value=MagicMock(__aenter__=AsyncMock(return_value=mock_response)),
     ):
         info = await api.get_info()
@@ -34,10 +35,11 @@ async def test_api_reboot():
 
     with (
         patch.object(
-            mock_session, "post",
+            mock_session,
+            "post",
             return_value=MagicMock(__aenter__=AsyncMock(return_value=mock_response)),
         ),
-        patch.object(mock_response, "json", AsyncMock(return_value={"status": "ok"}))
+        patch.object(mock_response, "json", AsyncMock(return_value={"status": "ok"})),
     ):
         success = await api.reboot()
         assert success is True

@@ -38,6 +38,7 @@ class SwitchDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             LOGGER,
             name=DOMAIN,
             update_interval=self._normal_interval,
+            config_entry=entry,
         )
 
     async def _async_update_data(self) -> dict[str, Any]:

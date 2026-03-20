@@ -14,7 +14,6 @@ switch_build_out/
 logo.png
 
 # Project Icons (Dynamic)
-switch_app/icon.png
 custom_components/switch_cfw/logo.png
 
 # Python

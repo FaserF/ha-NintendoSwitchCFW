@@ -14,11 +14,18 @@ from homeassistant.config_entries import (
     ConfigFlow as ConfigFlowBase,
     ConfigFlowResult,
     OptionsFlow,
-    ZeroconfServiceInfo,
 )
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+# ZeroconfServiceInfo location depends on Home Assistant version
+try:
+    from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+except ImportError:
+    try:
+        from homeassistant.components.zeroconf import ZeroconfServiceInfo
+    except ImportError:
+        from typing import Any as ZeroconfServiceInfo
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import config_validation as cv
 
@@ -52,7 +59,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
         if user_input is not None:
             if user_input.get("flow_type") == "manual":
                 return await self.async_step_manual_entry()
-            return await self.async_step_select_device()
+            return await self.async_step_discovery()
 
         return self.async_show_form(
             step_id="user",
@@ -65,11 +72,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
             ),
         )
 
-    async def async_step_discovery(self, discovery_info: dict[str, Any]) -> ConfigFlowResult:
-        """Handle discovery."""
-        return await self.async_step_select_device()
-
-    async def async_step_select_device(
+    async def async_step_discovery(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Scan for Nintendo Switch consoles in the background."""

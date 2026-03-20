@@ -11,7 +11,7 @@ async def test_coordinator_update_success(
     mock_hass, mock_config_entry, mock_switch_api
 ):
     """Test successful coordinator update."""
-    coordinator = SwitchCoordinator(mock_hass, mock_config_entry)
+    coordinator = SwitchDataUpdateCoordinator(mock_hass, mock_config_entry)
 
     # Trigger update
     data = await coordinator._async_update_data()
@@ -26,7 +26,7 @@ async def test_coordinator_update_success(
 @pytest.mark.asyncio
 async def test_coordinator_sleep_mode(mock_hass, mock_config_entry, mock_switch_api):
     """Test sleep mode logic in coordinator."""
-    coordinator = SwitchCoordinator(mock_hass, mock_config_entry)
+    coordinator = SwitchDataUpdateCoordinator(mock_hass, mock_config_entry)
 
     # 1. First update succeeds
     await coordinator._async_update_data()

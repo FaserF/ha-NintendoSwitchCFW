@@ -5,13 +5,18 @@
   ],
   "packageRules": [
     {
-      "matchPackagePatterns": ["*"],
-      "semanticCommitType": "chore"
+      "matchCategories": [
+        "python"
+      ],
+      "enabled": true
+    },
+    {
+      "semanticCommitType": "chore",
+      "matchPackageNames": [
+        "*"
+      ]
     }
   ],
-  "python": {
-    "enabled": true
-  },
   "github-actions": {
     "enabled": true
   },

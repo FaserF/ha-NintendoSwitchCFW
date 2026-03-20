@@ -3,7 +3,7 @@
 
 // The Program ID for the sysmodule.
 // Atmosphere expects the NSO to be at sdmc:/atmosphere/contents/<ID>/exefs/main
-#define SYSMODULE_PROGRAM_ID "42000000000000FF"
+#define SYSMODULE_PROGRAM_ID "010000000000CAFE"
 
 // Standard filenames for the release artifacts
 #define NRO_FILENAME "homeassistant.nro"

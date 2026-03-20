@@ -25,7 +25,7 @@ extern "C" {
     
     // Sysmodules must define their own heap
     void __libnx_initheap(void) {
-        static char inner_heap[0x100000]; // 1MB heap
+        static char inner_heap[0x400000]; // Increased to 4MB heap for stability
         extern char* fake_heap_start;
         extern char* fake_heap_end;
         fake_heap_start = inner_heap;
@@ -330,6 +330,15 @@ int main(int argc, char **argv) {
     
     g_logger.init();
     LOG_I("Home Assistant Sysmodule started (v" APP_VERSION ")");
+    
+    // Heartbeat log for physical Switch troubleshooting
+    FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+    if (f) {
+        time_t t = time(NULL);
+        fprintf(f, "[%ld] Sysmodule Main Started\n", t);
+        fclose(f);
+    }
+
     ConfigManager::getInstance().load();
 
     const SocketInitConfig* default_cfg = socketGetDefaultInitConfig();
@@ -337,6 +346,8 @@ int main(int argc, char **argv) {
     sock_cfg.bsd_service_type = BsdServiceType_System;
 
     if (R_FAILED(socketInitialize(&sock_cfg))) {
+        FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+        if (f) { fprintf(f, "[ERR] socketInitialize failed\n"); fclose(f); }
         LOG_E("Failed to initialize sockets");
         return 1;
     }
@@ -358,12 +369,21 @@ int main(int argc, char **argv) {
     address.sin_port = htons(ConfigManager::getInstance().getPort());
     address.sin_addr.s_addr = INADDR_ANY;
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+        if (f) { fprintf(f, "[ERR] bind failed: %d\n", errno); fclose(f); }
         LOG_E("Failed to bind socket");
         return 1;
     }
     if (listen(server_fd, 5) < 0) {
+        FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+        if (f) { fprintf(f, "[ERR] listen failed\n"); fclose(f); }
         LOG_E("Failed to listen on socket");
         return 1;
+    }
+    
+    {
+        FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+        if (f) { fprintf(f, "[OK] Server listening on port %d\n", ConfigManager::getInstance().getPort()); fclose(f); }
     }
 
     // Make server_fd non-blocking

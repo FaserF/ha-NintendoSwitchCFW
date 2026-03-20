@@ -3,7 +3,7 @@ import json
 
 def main():
     output_path = "switch_sysmodule/main.json"
-    sys_id = "0x42000000000000FF"
+    sys_id = "0x010000000000CAFE"
 
     # Manual, bare-minimum robust JSON that avoids template bugs
     data = {
@@ -12,12 +12,12 @@ def main():
         "program_id_range_min": sys_id,
         "program_id_range_max": sys_id,
         "version": "0x0001",
-        "main_thread_stack_size": "0x00010000",
+        "main_thread_stack_size": "0x00100000",
         "main_thread_priority": 42,
         "default_cpu_id": 3,
         "process_category": 0,
         "is_retail": True,
-        "pool_partition": 2,
+        "pool_partition": 1,
         "is_64_bit": True,
         "address_space_type": 3,
         "filesystem_access": {"permissions": "0xffffffffffffffff"},

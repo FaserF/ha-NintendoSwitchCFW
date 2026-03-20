@@ -94,8 +94,8 @@ This integration is designed for Nintendo Switch consoles running Atmosphere Cus
 
 To allow Home Assistant to communicate with your Switch, you must install the background sysmodule and the companion configuration app.
 1. Download the latest `main` (background service), `main.npdm` (boot descriptor) and `homeassistant.nro` (config app) from the [Releases page](https://github.com/FaserF/ha-NintendoSwitchCFW/releases).
-2. On your SD card, create the folder: `/atmosphere/contents/42000000000000FF/exefs/`.
-3. Copy `main` and `main.npdm` to: `/atmosphere/contents/42000000000000FF/exefs/`.
+2. On your SD card, create the folder: `/atmosphere/contents/010000000000CAFE/exefs/`.
+3. Copy `main` and `main.npdm` to: `/atmosphere/contents/010000000000CAFE/exefs/`.
 4. Copy `homeassistant.nro` to: `/switch/homeassistant.nro`.
 5. Reboot your Switch.
 

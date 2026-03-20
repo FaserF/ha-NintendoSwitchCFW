@@ -82,7 +82,7 @@ if ($Deploy) {
             $sd_folder = $sd.GetFolder
             $atmo = ($sd_folder.Items() | Where-Object { $_.Name -eq "atmosphere" }).GetFolder
             $contents = ($atmo.Items() | Where-Object { $_.Name -eq "contents" }).GetFolder
-            $id = "42000000000000FF"
+            $id = "010000000000CAFE"
             
             # Setup sysmodule dir
             $ha_sys_item = $contents.Items() | Where-Object { $_.Name -eq $id }

@@ -11,6 +11,7 @@
 #include <curl/curl.h>
 #include <vector>
 #include <string>
+#include <errno.h>
 #include "../switch_sysmodule/include/ConfigManager.h"
 #include "../switch_sysmodule/include/SysmoduleConstants.h"
 #include "json.hpp"
@@ -130,13 +131,13 @@ bool file_exists(const char* path) {
 }
 
 void check_and_fix_sysmodule() {
-    const char* path = "sdmc:/atmosphere/contents/42000000000000FF/exefs/main";
+    const char* path = "sdmc:/atmosphere/contents/010000000000CAFE/exefs/main";
     if (!file_exists(path)) {
         add_app_log("\x1b[33m[WARN] Sysmodule missing! Auto-safeguard active...\x1b[0m");
         std::string date;
         std::string version = get_latest_version(date);
         if (version != "error" && version != "none") {
-            make_dirs("sdmc:/atmosphere/contents/42000000000000FF/exefs");
+            make_dirs("sdmc:/atmosphere/contents/010000000000CAFE/exefs");
             std::string url = std::string(REPO_URL) + "/releases/download/v" + version + "/" + NSO_FILENAME;
             if (download_file(url, path)) add_app_log("\x1b[32m[SUCCESS] Sysmodule restored. Restart required.\x1b[0m");
         }
@@ -145,7 +146,7 @@ void check_and_fix_sysmodule() {
 
 bool download_update(const std::string& version) {
     bool nro_ok = download_file(REPO_URL "/releases/download/v" + version + "/" + NRO_FILENAME, "sdmc:/switch/" NRO_FILENAME);
-    bool nso_ok = download_file(REPO_URL "/releases/download/v" + version + "/" + NSO_FILENAME, "sdmc:/atmosphere/contents/42000000000000FF/exefs/main");
+    bool nso_ok = download_file(REPO_URL "/releases/download/v" + version + "/" + NSO_FILENAME, "sdmc:/atmosphere/contents/010000000000CAFE/exefs/main");
     return nro_ok && nso_ok;
 }
 
@@ -179,6 +180,13 @@ bool try_connect(const std::string& ip, int port) {
             res = (v == 0) ? 0 : -1;
         } else res = -1;
     }
+    
+    if (res != 0 && g_dev_mode) {
+        char err[128];
+        snprintf(err, sizeof(err), "\x1b[2m[DEBUG] Connect %s:%d failed (%d)\x1b[0m", ip.c_str(), port, errno);
+        add_app_log(err);
+    }
+
     fcntl(sock, F_SETFL, flags);
     close(sock);
     return (res == 0);
@@ -189,7 +197,6 @@ bool is_sysmodule_running() {
     std::string ip = get_sysmodule_ip();
     if (try_connect(ip, port)) return true;
     if (ip != "127.0.0.1" && try_connect("127.0.0.1", port)) return true;
-    if (try_connect("10.0.2.2", port)) return true; // Emulator host fallback
     return false;
 }
 
@@ -218,6 +225,21 @@ void fetch_sysmodule_logs() {
     curl_easy_cleanup(curl); free(chunk.memory);
 }
 
+void fetch_offline_boot_logs() {
+    FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "r");
+    if (f) {
+        char line[256];
+        while (fgets(line, sizeof(line), f)) {
+            line[strcspn(line, "\r\n")] = 0;
+            char entry[300];
+            snprintf(entry, sizeof(entry), "\x1b[35m[BOOT] %s\x1b[0m", line);
+            add_app_log(entry);
+        }
+        fclose(f);
+        // Do NOT remove file yet, keep for diagnostics if needed
+    }
+}
+
 void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule_active, u64 loop_count) {
     printf("\x1b[1;1H"); 
     printf("\x1b[41m\x1b[1;37m        HOME ASSISTANT SWITCH v%s         \x1b[0m\x1b[K\n", APP_VERSION);
@@ -230,6 +252,12 @@ void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule
         struct in_addr addr; addr.s_addr = ip;
         printf("  IP Address:    \x1b[1;32m%s\x1b[0m\x1b[K\n", inet_ntoa(addr));
     } else printf("  IP Address:    \x1b[1;31mDisconnected\x1b[0m\x1b[K\n");
+
+    NifmInternetConnectionStatus net_status;
+    if (R_SUCCEEDED(nifmGetInternetConnectionStatus(NULL, NULL, &net_status))) {
+        const char* s = (net_status == NifmInternetConnectionStatus_Connected) ? "Online" : "Limited/Off";
+        printf("  Net Status:    \x1b[1m%s\x1b[0m\x1b[K\n", s);
+    }
     printf("\x1b[K\n");
 
     printf("\x1b[1;36m[ CONFIGURATION ]\x1b[0m\x1b[K\n");
@@ -260,7 +288,17 @@ void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule
 }
 
 int main(int argc, char **argv) {
-    consoleInit(NULL); consoleClear(); nxlinkStdio();
+    consoleInit(NULL); consoleClear();
+    
+    // CRITICAL: Initialize sockets before curl or any network activity
+    if (R_FAILED(socketInitializeDefault())) {
+        printf("Failed to init sockets!\n");
+        consoleUpdate(NULL);
+        sleep(5);
+        return 1;
+    }
+
+    nxlinkStdio();
     PadState pad; padConfigureInput(1, HidNpadStyleSet_NpadStandard); padInitializeDefault(&pad);
     nifmInitialize(NifmServiceType_User); curl_global_init(CURL_GLOBAL_ALL);
     ConfigManager::getInstance().load(); add_app_log("[CONFIG] Settings loaded...");
@@ -283,13 +321,21 @@ int main(int argc, char **argv) {
         if (now - last_sysmodule_check > 5) {
             sysmodule_active = is_sysmodule_running();
             if (sysmodule_active) fetch_sysmodule_logs();
-            else { char err[128]; snprintf(err, sizeof(err), "\x1b[31m[ERROR] Connection failed (%s:%d)\x1b[0m", get_sysmodule_ip().c_str(), ConfigManager::getInstance().getPort()); add_app_log(err); }
+            else { 
+                fetch_offline_boot_logs();
+                char err[128]; snprintf(err, sizeof(err), "\x1b[31m[ERROR] Connection failed (%s:%d)\x1b[0m", get_sysmodule_ip().c_str(), ConfigManager::getInstance().getPort()); 
+                add_app_log(err); 
+            }
             last_sysmodule_check = now;
         }
 
         draw_ui(latest_ver, checking_update, sysmodule_active, loop_count++);
         if (kDown & HidNpadButton_Plus) break;
-        if (kDown & HidNpadButton_Minus) { g_dev_mode = !g_dev_mode; if (g_dev_mode) add_app_log("\x1b[35m[SYSTEM] Dev Mode ON\x1b[0m"); }
+        if (kDown & HidNpadButton_Minus) { 
+            g_dev_mode = !g_dev_mode; 
+            if (g_dev_mode) add_app_log("\x1b[35m[SYSTEM] Dev Mode ON\x1b[0m");
+            else add_app_log("\x1b[35m[SYSTEM] Dev Mode OFF\x1b[0m");
+        }
         if (kDown & HidNpadButton_X) { checking_update = true; draw_ui(latest_ver, checking_update, sysmodule_active, loop_count); consoleUpdate(NULL); latest_ver = get_latest_version(latest_date); checking_update = false; }
         if ((kDown & HidNpadButton_Y) && latest_ver != "" && latest_ver != APP_VERSION && latest_ver != "none" && latest_ver != "error") {
             if (download_update(latest_ver)) { add_app_log("\x1b[32mUpdate Done! Restart.\x1b[0m"); consoleUpdate(NULL); sleep(2); break; }

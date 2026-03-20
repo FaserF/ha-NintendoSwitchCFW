@@ -2,7 +2,7 @@ import json
 
 
 def main():
-    output_path = "/src/switch_sysmodule/main.json"
+    output_path = "switch_sysmodule/main.json"
     sys_id = "0x4200000000000001"
 
     # Manual, bare-minimum robust JSON that avoids template bugs

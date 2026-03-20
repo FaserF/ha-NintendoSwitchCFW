@@ -139,6 +139,15 @@ jobs:
               else: cats["🚀 Other"].append(entry)
           
           changelog = "## Changelog\n\n"
+          
+          new_version = os.environ.get("NEW_VERSION", "0.0.0")
+          if new_version.startswith("0."):
+              warning = "> [!WARNING]\n"
+              warning += "> This integration is currently in a testing stage. "
+              warning += "It is expected that not everything is fully functional "
+              warning += "until a 1.0.0 release or higher is available.\n\n"
+              changelog = warning + changelog
+
           has_content = False
           for title in ["✨ Features", "🐛 Bug Fixes", "📦 Dependencies", "🔧 Maintenance & CI", "📝 Documentation", "🧪 Tests", "🚀 Other"]:
               items = cats[title]

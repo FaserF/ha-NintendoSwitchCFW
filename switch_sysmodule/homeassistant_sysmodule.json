@@ -1,7 +1,7 @@
 {
     "name": "ha_switch",
     "program_id": "0x4200000000000001",
-    "version": "0.2.4-MASTER",
+    "version": "0.2.2-dev",
     "main_thread_stack_size": "0x4000",
     "main_thread_priority": 48,
     "default_cpu_id": 3,

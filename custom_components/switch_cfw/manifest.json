@@ -21,7 +21,7 @@
     "switch_cfw"
   ],
   "requirements": [],
-  "version": "0.2.1",
+  "version": "0.2.2-dev",
   "zeroconf": [
     {
       "type": "_http._tcp.local.",

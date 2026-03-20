@@ -1,6 +1,6 @@
 [project]
 name = "ha-NintendoSwitchCFW"
-version = "0.2.1"
+version = "0.2.2-dev"
 description = "Home Assistant integration for Nintendo Switch CFW"
 readme = "README.md"
 authors = [

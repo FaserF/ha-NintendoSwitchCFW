@@ -1,0 +1,67 @@
+{
+    "name": "HomeAssistant",
+    "program_id": "0x4200000000000001",
+    "program_id_range_min": "0x4200000000000001",
+    "program_id_range_max": "0x4200000000000001",
+    "version": "0x0001",
+    "main_thread_stack_size": "0x00010000",
+    "main_thread_priority": 42,
+    "default_cpu_id": 3,
+    "process_category": 0,
+    "is_retail": true,
+    "pool_partition": 2,
+    "is_64_bit": true,
+    "address_space_type": 1,
+    "filesystem_access": {
+        "permissions": "0xffffffffffffffff"
+    },
+    "service_access": [
+        "*"
+    ],
+    "service_host": [
+        "*"
+    ],
+    "kernel_capabilities": [
+        {
+            "type": "kernel_flags",
+            "value": {
+                "highest_thread_priority": 63,
+                "lowest_thread_priority": 24,
+                "lowest_cpu_id": 3,
+                "highest_cpu_id": 3
+            }
+        },
+        {
+            "type": "syscalls",
+            "value": {
+                "svcConnectToNamedPort": "0x1f",
+                "svcSendSyncRequest": "0x21",
+                "svcCloseHandle": "0x16",
+                "svcGetInfo": "0x29"
+            }
+        },
+        {
+            "type": "min_kernel_version",
+            "value": "0x0030"
+        },
+        {
+            "type": "handle_table_size",
+            "value": 1023
+        },
+        {
+            "type": "debug_flags",
+            "value": {
+                "allow_debug": false,
+                "force_debug": true,
+                "force_debug_prod": false,
+                "prevent_code_reads": false,
+                "prevent_code_writes": false,
+                "enable_aslr": true,
+                "address_space_merge": false,
+                "optimize_memory_allocation": false,
+                "disable_device_address_space_merge": false,
+                "enable_alias_region_extra_size": false
+            }
+        }
+    ]
+}

@@ -1,0 +1,39 @@
+# Build Artifacts
+build/
+*.elf
+*.map
+*.nro
+*.nsp
+*.nso
+*.o
+*.d
+*.nacp
+switch_app/build/
+switch_sysmodule/build/
+switch_build_out/
+logo.png
+
+# Project Icons (Dynamic)
+switch_app/icon.png
+custom_components/switch_cfw/logo.png
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+.gemini/
+logo_final.png

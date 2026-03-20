@@ -1,0 +1,50 @@
+name: Bug Report
+description: Create a report to help us improve the Nintendo Switch CFW integration
+title: '[Bug]: '
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: input
+    id: version
+    attributes:
+      label: Integration Version
+      description: Which version of this integration are you using?
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: input
+    id: firmware_version
+    attributes:
+      label: Nintendo Switch Firmware Version
+      description: Which version of HOS is running on your Switch?
+      placeholder: 17.0.1
+    validations:
+      required: true
+  - type: dropdown
+    id: switch_model
+    attributes:
+      label: Switch Model
+      description: What model of Nintendo Switch are you using?
+      options:
+        - V1 (Erista)
+        - V2 (Mariko)
+        - Lite
+        - OLED
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output.
+      render: shell

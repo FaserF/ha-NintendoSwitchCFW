@@ -1,0 +1,121 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "flow_type": "Connection Type"
+        },
+        "description": "How do you want to add your Nintendo Switch?"
+      },
+      "discovery": {
+        "title": "Search for Nintendo Switch",
+        "data": {
+          "device": "Discovered Devices"
+        },
+        "description": "Scanning your network for Nintendo Switch consoles with the sysmodule installed.\n\nMake sure your Switch is turned on and the 'Home Assistant Switch' app is running if discovery fails."
+      },
+      "discovery_confirm": {
+        "title": "Confirm Discovery",
+        "data": {
+          "api_token": "API Token"
+        },
+        "description": "Enter the API Token for {name} ({host}).\n\nYou can find the token in the 'Home Assistant Switch' app on your console."
+      },
+      "manual_entry": {
+        "title": "Manual Connection",
+        "data": {
+          "host": "IP Address",
+          "api_token": "API Token",
+          "name": "Integration Name"
+        },
+        "description": "Enter the connection details for your Nintendo Switch.\n\nMake sure the 'Home Assistant Switch' app is open on your console to see the IP and Token."
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect - check IP and ensure sysmodule is running",
+      "invalid_auth": "Invalid API Token",
+      "no_devices_found": "No consoles found on your network. Try manual entry.",
+      "app_version_outdated": "Homebrew App is outdated ({current_version} < {min_version}). Please update from GitHub.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This Switch is already configured",
+      "cannot_connect": "Could not connect to the Switch"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "firmware_version": {
+        "name": "Firmware Version"
+      },
+      "battery_level": {
+        "name": "Battery Level"
+      },
+      "current_game": {
+        "name": "Current Game"
+      },
+      "cpu_temperature": {
+        "name": "CPU Temperature"
+      },
+      "gpu_temperature": {
+        "name": "GPU Temperature"
+      },
+      "skin_temperature": {
+        "name": "Skin Temperature"
+      },
+      "fan_speed": {
+        "name": "Fan Speed"
+      },
+      "sd_card_storage": {
+        "name": "SD Card Storage"
+      },
+      "nand_user_storage": {
+        "name": "NAND User Storage"
+      },
+      "system_uptime": {
+        "name": "System Uptime"
+      },
+      "wifi_signal_strength": {
+        "name": "WiFi Signal Strength"
+      },
+      "memory_usage": {
+        "name": "Memory Usage"
+      },
+      "sysmodule_logs": {
+        "name": "Sysmodule Logs"
+      }
+    },
+    "binary_sensor": {
+      "charging": {
+        "name": "Charging"
+      },
+      "docked": {
+        "name": "Docked"
+      },
+      "sleep_mode": {
+        "name": "Sleep Mode"
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Reboot"
+      },
+      "shutdown": {
+        "name": "Shutdown"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "System Update"
+      },
+      "homebrew_app": {
+        "name": "Homebrew App"
+      }
+    },
+    "select": {
+      "game_list": {
+        "name": "Installed Games"
+      }
+    }
+  }
+}

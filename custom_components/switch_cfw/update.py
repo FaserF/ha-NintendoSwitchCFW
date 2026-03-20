@@ -84,7 +84,7 @@ class SwitchAppUpdate(SwitchUpdateEntity):
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.entry_id}_app_update"
         # For the app update, we'll use our own repo versioning
-        self._repo = "FaserF/ha-NintentdoSwitchCFW"
+        self._repo = "FaserF/ha-NintendoSwitchCFW"
 
     @property
     def installed_version(self) -> str | None:

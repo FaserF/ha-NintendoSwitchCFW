@@ -31,13 +31,16 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install ruff mypy homeassistant --system
+          uv pip install ruff mypy homeassistant
+
       - name: Run Ruff Linter
-        run: ruff check .
+        run: uv run ruff check .
+
       - name: Run Ruff Formatter
-        run: ruff format --check .
+        run: uv run ruff format --check .
+
       - name: Run Mypy
-        run: mypy custom_components/switch_cfw
+        run: uv run mypy custom_components/switch_cfw
 
   hassfest:
     name: Hassfest

@@ -5,13 +5,13 @@
     "@FaserF"
   ],
   "config_flow": true,
-  "dependencies": [],
-  "documentation": "https://github.com/FaserF/ha-NintentdoSwitchCFW",
+  "after_dependencies": [
+    "network"
+  ],
+  "documentation": "https://github.com/FaserF/ha-NintendoSwitchCFW",
   "integration_type": "hub",
   "iot_class": "local_push",
-  "logbook": false,
-  "remote": true,
-  "issue_tracker": "https://github.com/FaserF/ha-NintentdoSwitchCFW/issues",
+  "issue_tracker": "https://github.com/FaserF/ha-NintendoSwitchCFW/issues",
   "loggers": [
     "switch_cfw"
   ],

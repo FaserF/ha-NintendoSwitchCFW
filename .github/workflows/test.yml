@@ -30,7 +30,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install .[test] --system
+          uv pip install .[test]
           
       - name: Run tests
         run: |
@@ -43,5 +43,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Build Sysmodule
         run: |
+          export PATH=$PATH:/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin
+          export DEVKITPRO=/opt/devkitpro
           cd switch_sysmodule
           make

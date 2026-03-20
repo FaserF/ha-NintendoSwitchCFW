@@ -1,5 +1,5 @@
 [project]
-name = "ha-NintentdoSwitchCFW"
+name = "ha-NintendoSwitchCFW"
 version = "0.1.6"
 description = "Home Assistant integration for Nintendo Switch CFW"
 readme = "README.md"
@@ -9,7 +9,7 @@ authors = [
 license = { text = "MIT" }
 dependencies = [
     "aiohttp>=3.13.3",
-    "homeassistant>=2024.1.0",
+    "homeassistant>=2026.3.0",
 ]
 
 [tool.setuptools.packages.find]

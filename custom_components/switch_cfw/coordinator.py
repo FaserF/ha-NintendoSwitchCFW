@@ -62,7 +62,7 @@ class SwitchDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 # Fetch latest app info from GitHub
                 app_update = await self.api.get_firmware_update(
-                    repository="FaserF/ha-NintentdoSwitchCFW"
+                    repository="FaserF/ha-NintendoSwitchCFW"
                 )
                 if app_update:
                     data["latest_app_version"] = app_update.get("latest_version")

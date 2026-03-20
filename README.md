@@ -1,13 +1,13 @@
 <div align="center">
-  <img src="logo.png" alt="Home Assistant Switch Logo" width="200">
+  <img src="https://raw.githubusercontent.com/FaserF/ha-NintendoSwitchCFW/main/logo.png" alt="Home Assistant Switch Logo" width="150">
 </div>
 
 # Nintendo Switch CFW (for Home Assistant)
 
-[![GitHub Release](https://img.shields.io/github/release/FaserF/ha-NintentdoSwitchCFW.svg?style=flat-square)](https://github.com/FaserF/ha-NintentdoSwitchCFW/releases)
-[![License](https://img.shields.io/github/license/FaserF/ha-NintentdoSwitchCFW.svg?style=flat-square)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/release/FaserF/ha-NintendoSwitchCFW.svg?style=flat-square)](https://github.com/FaserF/ha-NintendoSwitchCFW/releases)
+[![License](https://img.shields.io/github/license/FaserF/ha-NintendoSwitchCFW.svg?style=flat-square)](LICENSE)
 [![hacs](https://img.shields.io/badge/HACS-custom-orange.svg?style=flat-square)](https://hacs.xyz)
-[![Lint](https://github.com/FaserF/ha-NintentdoSwitchCFW/actions/workflows/lint.yml/badge.svg)](https://github.com/FaserF/ha-NintentdoSwitchCFW/actions/workflows/lint.yml)
+[![Lint](https://github.com/FaserF/ha-NintendoSwitchCFW/actions/workflows/lint.yml/badge.svg)](https://github.com/FaserF/ha-NintendoSwitchCFW/actions/workflows/lint.yml)
 
 A modern, high-quality Home Assistant integration for Nintendo Switch consoles running Atmosphere Custom Firmware. Monitor your console's health, track current games, and execute system commands directly from your dashboard.
 
@@ -68,7 +68,7 @@ The integration checks for the latest firmware versions. By default, it uses [TH
 
 > [!TIP]
 > You can change the update repository in the **Integration Options**.
->
+
 > [!WARNING]
 > Support is only provided for the default repository. Custom repositories must follow a similar release structure (tag names as versions, `.zip` or `.nro` assets) to be compatible.
 
@@ -93,7 +93,7 @@ This integration is designed for Nintendo Switch consoles running Atmosphere Cus
 ### 1. Nintendo Switch (Sysmodule & Config App)
 
 To allow Home Assistant to communicate with your Switch, you must install the background sysmodule and the companion configuration app.
-1. Download the latest `main` (background service), `main.npdm` (boot descriptor) and `homeassistant.nro` (config app) from the [Releases page](https://github.com/FaserF/ha-NintentdoSwitchCFW/releases).
+1. Download the latest `main` (background service), `main.npdm` (boot descriptor) and `homeassistant.nro` (config app) from the [Releases page](https://github.com/FaserF/ha-NintendoSwitchCFW/releases).
 2. On your SD card, create the folder: `/atmosphere/contents/4200000000000001/exefs/`.
 3. Copy `main` and `main.npdm` to: `/atmosphere/contents/4200000000000001/exefs/`.
 4. Copy `homeassistant.nro` to: `/switch/homeassistant.nro`.
@@ -114,17 +114,17 @@ Together, they provide both the persistent background connectivity and a simple 
 
 This integration is fully compatible with [HACS](https://hacs.xyz/).
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=FaserF/ha-NintentdoSwitchCFW&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=FaserF/ha-NintendoSwitchCFW&category=integration)
 
 1. Open HACS in Home Assistant.
 2. Click on the three dots in the top right corner and select **Custom repositories**.
-3. Add `FaserF/ha-NintentdoSwitchCFW` with category **Integration**.
+3. Add `FaserF/ha-NintendoSwitchCFW` with category **Integration**.
 4. Search for "Nintendo Switch CFW" and install.
 5. Restart Home Assistant.
 
 ### Manual Installation
 
-1. Download the latest release from the [Releases page](https://github.com/FaserF/ha-NintentdoSwitchCFW/releases).
+1. Download the latest release from the [Releases page](https://github.com/FaserF/ha-NintendoSwitchCFW/releases).
 2. Extract the `custom_components/switch_cfw` folder into your Home Assistant's `custom_components` directory.
 3. Restart Home Assistant.
 

@@ -217,9 +217,7 @@ void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule
     printf("\x1b[1;36m|\x1b[0m             \x1b[1mHOME ASSISTANT SWITCH\x1b[0m              \x1b[1;36m|\x1b[0m\n");
     printf("\x1b[1;36m+--------------------------------------------------+\x1b[0m\n");
     printf("  \x1b[2mBrought to you by FaserF\x1b[0m\n");
-    printf("  \x1b[2mhttps://github.com/FaserF/ha-NintentdoSwitchCFW\x1b[0m\n\n");
-
-    // System Status
+    printf("  \x1b[2mhttps://github.com/FaserF/ha-NintendoSwitchCFW/releases/latest/download/homeassistant.nrous\x1b[0m\n\n");
     printf("\x1b[1m[ SYSTEM STATUS ]\x1b[0m\n");
     printf("  Service Status: %s\n", sysmodule_active ? "\x1b[1;32m[X] ACTIVE\x1b[0m" : "\x1b[1;31m[ ] INACTIVE\x1b[0m");
     if (!sysmodule_active) {

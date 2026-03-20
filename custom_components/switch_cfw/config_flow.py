@@ -47,7 +47,7 @@ from .const import (
 )
 
 
-class ConfigFlow(ConfigFlowBase, domain=DOMAIN):
+class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Nintendo Switch CFW."""
 
     VERSION = 1
@@ -213,7 +213,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):
                     self._host,
                     err.status,
                 )
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+            except aiohttp.ClientError, asyncio.TimeoutError:
                 errors["base"] = "cannot_connect"
                 LOGGER.error("Manual connection to %s timed out or failed", self._host)
             except Exception as err:
@@ -301,7 +301,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):
                     self._host,
                     err.status,
                 )
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+            except aiohttp.ClientError, asyncio.TimeoutError:
                 errors["base"] = "cannot_connect"
                 LOGGER.error(
                     "Discovery confirmation for %s timed out or failed", self._host

@@ -55,6 +55,21 @@ std::vector<std::string> g_app_logs;
 void add_app_log(const std::string& msg) {
     if (g_app_logs.size() > 15) g_app_logs.erase(g_app_logs.begin());
     g_app_logs.push_back(msg);
+
+    if (g_dev_mode) {
+        int sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sock >= 0) {
+            int opt = 1;
+            setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (char*)&opt, sizeof(opt));
+            struct sockaddr_in addr;
+            memset(&addr, 0, sizeof(addr));
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(2828);
+            addr.sin_addr.s_addr = INADDR_BROADCAST;
+            sendto(sock, msg.c_str(), msg.length(), 0, (struct sockaddr*)&addr, sizeof(addr));
+            close(sock);
+        }
+    }
 }
 
 std::string get_latest_version(std::string& date) {
@@ -83,6 +98,10 @@ std::string get_latest_version(std::string& date) {
             if (!date.empty() && date.length() > 10) date = date.substr(0, 10); 
             if (!version.empty() && version[0] == 'v') version = version.substr(1);
         } else {
+            std::string errMsg = j.value("message", "API Limit or Missing Release");
+            char errLog[256];
+            snprintf(errLog, sizeof(errLog), "\x1b[31m[ERROR] Update check: %s\x1b[0m", errMsg.substr(0, 50).c_str());
+            add_app_log(errLog);
             version = "none";
         }
     } else {
@@ -154,7 +173,7 @@ std::string get_sysmodule_ip() {
     u32 cur_ip = 0;
     if (R_SUCCEEDED(nifmGetCurrentIpAddress(&cur_ip)) && cur_ip != 0) {
         struct in_addr addr; addr.s_addr = cur_ip;
-        if (strcmp(inet_ntoa(addr), "192.168.1.35") == 0) return "192.168.1.35";
+        return std::string(inet_ntoa(addr));
     }
     return "127.0.0.1";
 }
@@ -179,12 +198,6 @@ bool try_connect(const std::string& ip, int port) {
             getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)(&v), &l);
             res = (v == 0) ? 0 : -1;
         } else res = -1;
-    }
-    
-    if (res != 0 && g_dev_mode) {
-        char err[128];
-        snprintf(err, sizeof(err), "\x1b[2m[DEBUG] Connect %s:%d failed (%d)\x1b[0m", ip.c_str(), port, errno);
-        add_app_log(err);
     }
 
     fcntl(sock, F_SETFL, flags);
@@ -236,55 +249,68 @@ void fetch_offline_boot_logs() {
             add_app_log(entry);
         }
         fclose(f);
-        // Do NOT remove file yet, keep for diagnostics if needed
+        remove("sdmc:/ha_sysmodule_boot.log");
     }
 }
 
 void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule_active, u64 loop_count) {
-    printf("\x1b[1;1H"); 
-    printf("\x1b[41m\x1b[1;37m        HOME ASSISTANT SWITCH v%s         \x1b[0m\x1b[K\n", APP_VERSION);
-    printf("\x1b[2m  (c) 2026 FaserF | https://github.com/FaserF/ha-NintendoSwitchCFW\x1b[0m\x1b[K\n\n");
+    printf("\x1b[H"); // Home
+    printf("\x1b[36m┌──────────────────────────────────────────────────────────────────────────┐\x1b[0m\x1b[K\n");
+    printf("\x1b[36m│\x1b[0m\x1b[1;37m        HOME ASSISTANT SWITCH v%-10s                           \x1b[0m\x1b[36m│\x1b[0m\x1b[K\n", APP_VERSION);
+    printf("\x1b[36m├───────────────────────────────┬──────────────────────────────────────────┤\x1b[0m\x1b[K\n");
+    
+    // Left Pane: System Status
+    printf("\x1b[36m│\x1b[0m \x1b[1;34m[ SYSTEM STATUS ]\x1b[0m             \x1b[36m│\x1b[0m \x1b[1;34m[ UPDATES & CONFIG ]\x1b[0m                   \x1b[36m│\x1b[0m\x1b[K\n");
+    
+    printf("\x1b[36m│\x1b[0m Status:   %-18s \x1b[36m│\x1b[0m ", sysmodule_active ? "\x1b[1;32mACTIVE\x1b[0m" : "\x1b[1;31mINACTIVE\x1b[0m");
+    if (checking_update) printf("\x1b[5;33mChecking for updates...\x1b[0m              ");
+    else if (latest_ver == "") printf("\x1b[2mUpdate check pending... (X)      \x1b[0m     ");
+    else if (latest_ver != "none" && latest_ver != "error") {
+        if (latest_ver != APP_VERSION) printf("\x1b[1;42m\x1b[37m NEW v%-6s AVAILABLE! (Y) \x1b[0m      ", latest_ver.c_str());
+        else printf("\x1b[2mLatest version active (v%-6s)    \x1b[0m", latest_ver.c_str());
+    } else printf("\x1b[31mUpdate check failed              \x1b[0m     ");
+    printf("\x1b[36m│\x1b[0m\x1b[K\n");
 
-    printf("\x1b[1;36m[ SYSTEM STATUS ]\x1b[0m\x1b[K\n");
-    printf("  Status:        %s\x1b[K\n", sysmodule_active ? "\x1b[1;32mACTIVE\x1b[0m" : "\x1b[1;31mINACTIVE\x1b[0m");
     u32 ip = 0;
+    struct in_addr addr;
     if (R_SUCCEEDED(nifmGetCurrentIpAddress(&ip)) && ip != 0) {
-        struct in_addr addr; addr.s_addr = ip;
-        printf("  IP Address:    \x1b[1;32m%s\x1b[0m\x1b[K\n", inet_ntoa(addr));
-    } else printf("  IP Address:    \x1b[1;31mDisconnected\x1b[0m\x1b[K\n");
+        addr.s_addr = ip;
+        printf("\x1b[36m│\x1b[0m IP:       \x1b[1;32m%-15s\x1b[0m    \x1b[36m│\x1b[0m ", inet_ntoa(addr));
+    } else {
+        printf("\x1b[36m│\x1b[0m IP:       \x1b[1;31mDisconnected\x1b[0m       \x1b[36m│\x1b[0m ");
+    }
+    printf("Port: \x1b[1m%-5d\x1b[0m                        \x1b[36m│\x1b[0m\x1b[K\n", ConfigManager::getInstance().getPort());
 
     NifmInternetConnectionStatus net_status;
+    const char* net_s = "Unknown";
     if (R_SUCCEEDED(nifmGetInternetConnectionStatus(NULL, NULL, &net_status))) {
-        const char* s = (net_status == NifmInternetConnectionStatus_Connected) ? "Online" : "Limited/Off";
-        printf("  Net Status:    \x1b[1m%s\x1b[0m\x1b[K\n", s);
+        net_s = (net_status == NifmInternetConnectionStatus_Connected) ? "\x1b[1;32mOnline\x1b[0m" : "\x1b[1;31mOffline\x1b[0m";
     }
-    printf("\x1b[K\n");
+    printf("\x1b[36m│\x1b[0m Network:  %-25s \x1b[36m│\x1b[0m ", net_s);
+    printf("Token: \x1b[1;33m%-15s\x1b[0m           \x1b[36m│\x1b[0m\x1b[K\n", ConfigManager::getInstance().getApiToken()[0] ? ConfigManager::getInstance().getApiToken() : "MISSING");
 
-    printf("\x1b[1;36m[ CONFIGURATION ]\x1b[0m\x1b[K\n");
-    printf("  Port: \x1b[1m%d\x1b[0m  |  Token: \x1b[1;33m%s\x1b[0m\x1b[K\n\n", 
-           ConfigManager::getInstance().getPort(), ConfigManager::getInstance().getApiToken()[0] ? ConfigManager::getInstance().getApiToken() : "NONE");
-
-    printf("\x1b[1;36m[ UPDATES ]\x1b[0m\x1b[K\n");
-    if (checking_update) printf("  \x1b[5;33mChecking...\x1b[0m\x1b[K\n");
-    else if (latest_ver == "") printf("  \x1b[2mUpdate check pending... (X) to Check\x1b[0m\x1b[K\n");
-    else if (latest_ver != "none" && latest_ver != "error") {
-        if (latest_ver != APP_VERSION) {
-            if (APP_VERSION > latest_ver) printf("  \x1b[1;32mDEV VERSION (Ahead of GitHub v%s)\x1b[0m\x1b[K\n", latest_ver.c_str());
-            else printf("  \x1b[1;42m\x1b[37m NEW v%s AVAILABLE! \x1b[0m (Y)\x1b[K\n", latest_ver.c_str());
-        } else printf("  \x1b[2mLatest version active.\x1b[0m\x1b[K\n");
-    } else printf("  \x1b[2mUpdate check failed/skipped.\x1b[0m\x1b[K\n");
-    printf("\x1b[K\n");
-
-    printf("\x1b[1;36m[ SYSTEM LOGS ]\x1b[0m\x1b[K\n");
-    if (g_app_logs.empty()) printf("  Waiting for bridge...\x1b[K\n");
-    else {
+    printf("\x1b[36m├───────────────────────────────┴──────────────────────────────────────────┤\x1b[0m\x1b[K\n");
+    printf("\x1b[36m│\x1b[0m \x1b[1;34m[ SYSTEM LOGS ]\x1b[0m                                                          \x1b[36m│\x1b[0m\x1b[K\n");
+    
+    if (g_app_logs.empty()) {
+        for(int i=0; i<10; i++) printf("\x1b[36m│\x1b[0m %-72s \x1b[36m│\x1b[0m\x1b[K\n", i == 0 ? "Waiting for sysmodule bridge..." : "");
+    } else {
         size_t start = (g_app_logs.size() > 10) ? g_app_logs.size() - 10 : 0;
-        for (size_t i = start; i < g_app_logs.size(); i++) printf("  %s\x1b[K\n", g_app_logs[i].c_str());
+        for (size_t i = 0; i < 10; i++) {
+            printf("\x1b[36m│\x1b[0m ");
+            if (start + i < g_app_logs.size()) {
+                printf("%s", g_app_logs[start + i].c_str());
+                printf("\x1b[75G\x1b[36m│\x1b[0m\x1b[K\n");
+            } else {
+                printf("%-72s \x1b[36m│\x1b[0m\x1b[K\n", "");
+            }
+        }
     }
-    for (int i=0; i<3; i++) printf("\x1b[K\n");
-    printf("\x1b[1;34m----------------------------------------------------\x1b[0m\x1b[K\n");
-    printf(" (ZL)Reload (ZR)Reset (X)Update (Y)Install (+)Exit (-)Dev\x1b[K\n");
-    printf("\x1b[1;34m----------------------------------------------------\x1b[0m\x1b[K\n");
+
+    printf("\x1b[36m└──────────────────────────────────────────────────────────────────────────┘\x1b[0m\x1b[K\n");
+    printf(" \x1b[1;37m(X)Check  (Y)Update/Install  (ZR)Reset  (-)DevMode  (+)Exit\x1b[0m\x1b[K\n");
+    if (g_dev_mode) printf(" \x1b[45m\x1b[1;37m DEV MODE ACTIVE \x1b[0m  UDP Broadcast on Port 2828\x1b[K\n");
+    else printf("\x1b[K\n");
 }
 
 int main(int argc, char **argv) {

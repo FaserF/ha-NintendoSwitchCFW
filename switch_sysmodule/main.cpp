@@ -19,7 +19,8 @@
 #include <switch/services/pm.h>
 #include <switch/services/hiddbg.h>
 #include <fcntl.h>
-
+#include <thread>
+#include <string>
 extern "C" {
     u32 __check_mask_save;
     
@@ -64,6 +65,22 @@ void handle_client(int client_sock) {
     if (bytes_read <= 0) {
         close(client_sock);
         return;
+    }
+
+    const char* api_token = ConfigManager::getInstance().getApiToken();
+    char token_header[128];
+    snprintf(token_header, sizeof(token_header), "X-API-Token: %s", api_token);
+    
+    if (!strstr(buffer, token_header)) {
+        ConfigManager::getInstance().load();
+        api_token = ConfigManager::getInstance().getApiToken();
+        snprintf(token_header, sizeof(token_header), "X-API-Token: %s", api_token);
+        if (!strstr(buffer, token_header)) {
+            const char *resp = "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n\r\n{\"error\": \"Unauthorized\"}";
+            write(client_sock, resp, strlen(resp));
+            close(client_sock);
+            return;
+        }
     }
 
     if (strstr(buffer, "GET /info")) {
@@ -152,8 +169,7 @@ void handle_client(int client_sock) {
     }
 
     if (strstr(buffer, "GET /titles")) {
-        char* json_out = (char*)malloc(16384);
-        strcpy(json_out, "[");
+        std::string json_out = "[";
         s32 total_records = 0;
         nsListApplicationRecord(NULL, 0, 0, &total_records);
         if (total_records > 0) {
@@ -169,12 +185,12 @@ void handle_client(int client_sock) {
                             char title_name[0x201] = {0};
                             NacpLanguageEntry* langentry = NULL;
                             if (R_SUCCEEDED(nacpGetLanguageEntry(&controlData->nacp, &langentry)) && langentry) {
-                        snprintf(title_name, sizeof(title_name), "%s", langentry->name);
-                    }
-                            if (!first) strcat(json_out, ",");
+                                snprintf(title_name, sizeof(title_name), "%s", langentry->name);
+                            }
+                            if (!first) json_out += ",";
                             char entry[1024];
                             snprintf(entry, sizeof(entry), "{\"title_id\": \"0x%016lX\", \"name\": \"%s\"}", (unsigned long)records[i].application_id, title_name);
-                            strcat(json_out, entry);
+                            json_out += entry;
                             first = false;
                         }
                         free(controlData);
@@ -183,53 +199,34 @@ void handle_client(int client_sock) {
             }
             if (records) free(records);
         }
-        strcat(json_out, "]");
+        json_out += "]";
         char resp_head[256];
-        snprintf(resp_head, sizeof(resp_head), "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %zu\r\n\r\n", strlen(json_out));
+        snprintf(resp_head, sizeof(resp_head), "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %zu\r\n\r\n", json_out.length());
         write(client_sock, resp_head, strlen(resp_head));
-        write(client_sock, json_out, strlen(json_out));
-        free(json_out);
+        write(client_sock, json_out.c_str(), json_out.length());
         close(client_sock);
         return;
     }
 
     if (strstr(buffer, "GET /logs")) {
         u32 count = Logger::getInstance().getLogCount();
-        char* json_out = (char*)malloc(16384);
-        strcpy(json_out, "[");
+        std::string json_out = "[";
         for (u32 i = 0; i < count; i++) {
-            if (i > 0) strcat(json_out, ",");
+            if (i > 0) json_out += ",";
             const LogEntry* log = Logger::getInstance().getLog(i);
             char entry[1024];
             const char* level_str = (log->level == LOG_LEVEL_INFO) ? "INFO" : (log->level == LOG_LEVEL_WARN) ? "WARN" : "ERROR";
             snprintf(entry, sizeof(entry), "{\"level\": \"%s\", \"message\": \"%s\", \"timestamp\": \"%s\"}", 
                      level_str, log->message, log->timestamp);
-            strcat(json_out, entry);
+            json_out += entry;
         }
-        strcat(json_out, "]");
+        json_out += "]";
         char resp_head[256];
-        snprintf(resp_head, sizeof(resp_head), "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %zu\r\n\r\n", strlen(json_out));
+        snprintf(resp_head, sizeof(resp_head), "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %zu\r\n\r\n", json_out.length());
         write(client_sock, resp_head, strlen(resp_head));
-        write(client_sock, json_out, strlen(json_out));
-        free(json_out);
+        write(client_sock, json_out.c_str(), json_out.length());
         close(client_sock);
         return;
-    }
-
-    const char* api_token = ConfigManager::getInstance().getApiToken();
-    char token_header[128];
-    snprintf(token_header, sizeof(token_header), "X-API-Token: %s", api_token);
-    
-    if (!strstr(buffer, token_header)) {
-        ConfigManager::getInstance().load();
-        api_token = ConfigManager::getInstance().getApiToken();
-        snprintf(token_header, sizeof(token_header), "X-API-Token: %s", api_token);
-        if (!strstr(buffer, token_header)) {
-            const char *resp = "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n\r\n{\"error\": \"Unauthorized\"}";
-            write(client_sock, resp, strlen(resp));
-            close(client_sock);
-            return;
-        }
     }
 
     if (strstr(buffer, "POST /reboot")) {
@@ -419,7 +416,7 @@ int main(int argc, char **argv) {
         }
 
         if ((client_sock = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) >= 0) {
-            handle_client(client_sock);
+            std::thread(handle_client, client_sock).detach();
         }
         svcSleepThread(10000000ULL); // 10ms sleep
     }

@@ -32,6 +32,12 @@
         "bpc",
         "capssc"
     ],
+    "system_resource_size": "0x00000000",
+    "optimize_memory_allocation": false,
+    "disable_device_address_space_merge": false,
+    "enable_alias_region_extra_size": false,
+    "prevent_code_reads": false,
+    "signature_key_generation": 0,
     "service_host": [],
     "kernel_capabilities": [
         {

@@ -22,8 +22,14 @@ def main():
         "address_space_type": 3,
         "filesystem_access": {"permissions": "0xffffffffffffffff"},
         "service_access": [
-            "set:sys", "psm", "ts", "nifm:u", "nifm:s", "pdm:qry", "ns:am2", "appletOE", "appletAE", "hiddbg", "bsd:u", "bsd:s", "hid"
+            "set:sys", "psm", "ts", "nifm:u", "nifm:s", "pdm:qry", "ns:am2", "appletOE", "appletAE", "hiddbg", "bsd:u", "bsd:s", "hid", "bpc", "capssc"
         ],
+        "system_resource_size": "0x00000000",
+        "optimize_memory_allocation": False,
+        "disable_device_address_space_merge": False,
+        "enable_alias_region_extra_size": False,
+        "prevent_code_reads": False,
+        "signature_key_generation": 0,
         "service_host": [],
         "kernel_capabilities": [
             {

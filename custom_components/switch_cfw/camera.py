@@ -25,7 +25,7 @@ class SwitchCamera(SwitchEntity, Camera):
 
     def __init__(self, coordinator) -> None:
         """Initialize the camera."""
-        super().__init__(coordinator)
+        SwitchEntity.__init__(self, coordinator)
         Camera.__init__(self)
         self._attr_name = "Nintendo Switch Screenshot"
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_screenshot"

@@ -12,6 +12,9 @@ switch_app/build/
 switch_sysmodule/build/
 switch_build_out/
 logo.png
+*.log
+*build*.txt
+*log*.txt
 
 # Project Icons (Dynamic)
 custom_components/switch_cfw/logo.png

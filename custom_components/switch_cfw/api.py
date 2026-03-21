@@ -52,7 +52,7 @@ class SwitchAPI:
 
     async def launch_title(self, title_id: str) -> bool:
         """Launch a title by ID."""
-        return await self._post(f"/launch?title_id={title_id}")
+        return await self._post("/command", {"action": "launch_app", "title_id": title_id})
 
     async def update_app(self) -> bool:
         """Trigger self-update of the Homebrew app."""
@@ -60,7 +60,23 @@ class SwitchAPI:
 
     async def send_button(self, button: str) -> bool:
         """Send a button press command to the sysmodule."""
-        return await self._post(f"/button?name={button}")
+        return await self._post("/button", {"button": button})
+
+    async def send_macro(self, sequence: list[dict[str, Any]]) -> bool:
+        """Send a macro sequence to the sysmodule."""
+        return await self._post("/button", {"sequence": sequence})
+
+    async def get_screenshot(self) -> bytes:
+        """Fetch a live screenshot from the sysmodule."""
+        url = f"{self._base_url}/screenshot"
+        try:
+            async with asyncio.timeout(10):
+                async with self._session.get(url, headers=self._headers) as response:
+                    response.raise_for_status()
+                    return await response.read()
+        except Exception as err:
+            LOGGER.error("Error fetching screenshot: %s", err)
+            raise
 
     async def get_logs(self) -> list[dict[str, Any]]:
         """Fetch recent logs from the sysmodule."""
@@ -122,10 +138,15 @@ class SwitchAPI:
                     url, json=data, headers=self._headers
                 ) as response:
                     response.raise_for_status()
-                    res_data = await response.json()
-                    if isinstance(res_data, dict):
-                        return res_data.get("status") == "ok"
-                    return False
+                    # Some endpoints might not return JSON or might return empty
+                    if response.status == 200:
+                        try:
+                            res_data = await response.json()
+                            if isinstance(res_data, dict):
+                                return res_data.get("status") == "ok"
+                        except Exception:
+                            return True # Assume success if 200 and no JSON
+                    return response.status == 200
         except aiohttp.ClientResponseError as err:
             LOGGER.error(
                 "HTTP error during POST %s: %s (status=%s)",
@@ -139,4 +160,4 @@ class SwitchAPI:
             return False
         except Exception as err:
             LOGGER.error("Unexpected error during POST %s: %s", endpoint, err)
-            raise
+            return False

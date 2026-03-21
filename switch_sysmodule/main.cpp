@@ -32,7 +32,7 @@ extern "C" {
     
     // Sysmodules must define their own heap
     void __libnx_initheap(void) {
-        static char inner_heap[0x400000]; // Increased to 4MB heap for stability
+        static char inner_heap[0x800000]; // Increased to 8MB for screenshot buffer
         extern char* fake_heap_start;
         extern char* fake_heap_end;
         fake_heap_start = inner_heap;
@@ -221,6 +221,78 @@ void handle_client(int client_sock) {
         return;
     }
 
+    if (strstr(buffer, "GET /screenshot")) {
+        u8* screen_buf = (u8*)malloc(1280 * 720 * 4);
+        if (screen_buf) {
+            if (R_SUCCEEDED(capsscCaptureRawImageWithTimeout(screen_buf, 1280 * 720 * 4, (ViLayerStack)0, 1280, 720, 1, 0, 1000000000LL))) {
+                #pragma pack(push, 1)
+                struct BMPHeader {
+                    uint16_t bfType;
+                    uint32_t bfSize;
+                    uint16_t bfReserved1;
+                    uint16_t bfReserved2;
+                    uint32_t bfOffBits;
+                } bmp;
+                struct BMPInfoHeader {
+                    uint32_t biSize;
+                    int32_t  biWidth;
+                    int32_t  biHeight;
+                    uint16_t biPlanes;
+                    uint16_t biBitCount;
+                    uint32_t biCompression;
+                    uint32_t biSizeImage;
+                    int32_t  biXPelsPerMeter;
+                    int32_t  biYPelsPerMeter;
+                    uint32_t biClrUsed;
+                    uint32_t biClrImportant;
+                } info;
+                #pragma pack(pop)
+
+                memset(&bmp, 0, sizeof(bmp));
+                bmp.bfType = 0x4D42;
+                bmp.bfSize = sizeof(bmp) + sizeof(info) + (1280 * 720 * 3);
+                bmp.bfOffBits = sizeof(bmp) + sizeof(info);
+                
+                memset(&info, 0, sizeof(info));
+                info.biSize = sizeof(info);
+                info.biWidth = 1280;
+                info.biHeight = -720; // Top-down
+                info.biPlanes = 1;
+                info.biBitCount = 24;
+                info.biCompression = 0;
+                info.biSizeImage = 1280 * 720 * 3;
+
+                const char *hdr = "HTTP/1.1 200 OK\r\nContent-Type: image/bmp\r\nConnection: close\r\n\r\n";
+                write(client_sock, hdr, strlen(hdr));
+                write(client_sock, &bmp, sizeof(bmp));
+                write(client_sock, &info, sizeof(info));
+
+                u8* row_buf = (u8*)malloc(1280 * 3);
+                if (row_buf) {
+                    for (int y = 0; y < 720; y++) {
+                        u8* src = &screen_buf[y * 1280 * 4];
+                        for (int x = 0; x < 1280; x++) {
+                            row_buf[x * 3 + 0] = src[x * 4 + 2]; // B
+                            row_buf[x * 3 + 1] = src[x * 4 + 1]; // G
+                            row_buf[x * 3 + 2] = src[x * 4 + 0]; // R
+                        }
+                        write(client_sock, row_buf, 1280 * 3);
+                    }
+                    free(row_buf);
+                }
+            } else {
+                const char *resp = "HTTP/1.1 500 Internal Server Error\r\n\r\n{\"error\": \"Capture failed\"}";
+                write(client_sock, resp, strlen(resp));
+            }
+            free(screen_buf);
+        } else {
+            const char *resp = "HTTP/1.1 500 Internal Server Error\r\n\r\n{\"error\": \"OOM\"}";
+            write(client_sock, resp, strlen(resp));
+        }
+        close(client_sock);
+        return;
+    }
+
     if (strstr(buffer, "GET /logs")) {
         u32 count = Logger::getInstance().getLogCount();
         std::string json_out = "[";
@@ -392,6 +464,7 @@ int main(int argc, char **argv) {
     nsInitialize();
     appletInitialize();
     hiddbgInitialize();
+    capsscInitialize();
     
     g_logger.init();
     LOG_I("Home Assistant Sysmodule started (v" APP_VERSION ")");
@@ -489,6 +562,7 @@ int main(int argc, char **argv) {
         svcSleepThread(10000000ULL); // 10ms sleep
     }
 
+    capsscExit();
     hiddbgExit();
     appletExit();
     nsExit();

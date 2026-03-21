@@ -28,7 +28,9 @@
         "hiddbg",
         "bsd:u",
         "bsd:s",
-        "hid"
+        "hid",
+        "bpc",
+        "capssc"
     ],
     "service_host": [],
     "kernel_capabilities": [

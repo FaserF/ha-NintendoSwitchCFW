@@ -35,6 +35,9 @@ class SwitchCamera(SwitchEntity, Camera):
     ) -> bytes | None:
         """Return a still image response from the camera."""
         try:
-            return await self.coordinator.api.get_screenshot()
+            image = await self.coordinator.api.get_screenshot()
+            if isinstance(image, bytes):
+                return image
+            return None
         except Exception:
             return None

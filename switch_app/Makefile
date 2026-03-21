@@ -18,10 +18,10 @@ STRIP	:=	$(PREFIX)strip
 NM		:=	$(PREFIX)nm
 
 #---------------------------------------------------------------------------------
-VERSION	?=	0.2.2-dev
+VERSION	?=	0.2.1
 ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=el0 -fPIE
 DEFINES	:=	-D__SWITCH__ -DAPP_VERSION=\"$(VERSION)\"
-CFLAGS	:=	-g -Wall -O2 -ffunction-sections $(ARCH) $(DEFINES) -I$(CURDIR)/include -I$(DEVKITPRO)/libnx/include -I$(DEVKITPRO)/portlibs/switch/include -I$(CURDIR)/../switch_sysmodule/include
+CFLAGS	:=	-g -Wall -Wextra -O2 -ffunction-sections $(ARCH) $(DEFINES) -I$(CURDIR)/include -I$(DEVKITPRO)/libnx/include -I$(DEVKITPRO)/portlibs/switch/include -I$(CURDIR)/../switch_sysmodule/include
 CXXFLAGS:=	$(CFLAGS) -fno-rtti -fno-exceptions
 LDFLAGS	:=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map) -L$(DEVKITPRO)/libnx/lib -L$(DEVKITPRO)/portlibs/switch/lib
 

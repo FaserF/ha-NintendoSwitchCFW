@@ -253,7 +253,7 @@ void fetch_offline_boot_logs() {
     }
 }
 
-void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule_active, u64 loop_count) {
+void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule_active, u64) {
     printf("\x1b[H"); // Home
     printf("\x1b[46m\x1b[1;37m                                                                            \x1b[0m\x1b[K\n");
     printf("\x1b[46m\x1b[1;37m        HOME ASSISTANT SWITCH v%-10s                           \x1b[0m\x1b[K\n", APP_VERSION);
@@ -308,7 +308,7 @@ void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule
     if (g_dev_mode) printf(" \x1b[45m\x1b[1;37m DEV MODE ACTIVE \x1b[0m  UDP: 2828\x1b[K\n");
 }
 
-int main(int argc, char **argv) {
+int main(int, char **) {
     consoleInit(NULL); consoleClear();
     
     // CRITICAL: Initialize sockets before curl or any network activity

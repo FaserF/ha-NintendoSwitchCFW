@@ -68,6 +68,8 @@ class SwitchAPI:
 
     async def get_screenshot(self) -> bytes:
         """Fetch a live screenshot from the sysmodule."""
+        if not self._session:
+            raise ValueError("Session not initialized")
         url = f"{self._base_url}/screenshot"
         try:
             async with asyncio.timeout(10):

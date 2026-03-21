@@ -437,7 +437,7 @@ void handle_client(int client_sock) {
             snprintf(log_msg, sizeof(log_msg), "Launching title ID: 0x%016lX", (unsigned long)tid);
             LOG_I(log_msg);
             pmshellInitialize();
-            NcmProgramLocation loc = {tid, NcmStorageId_None};
+            NcmProgramLocation loc = {tid, NcmStorageId_None, {0}};
             if (R_FAILED(pmshellLaunchProgram(0, &loc, NULL))) {
                 snprintf(log_msg, sizeof(log_msg), "Failed to launch title ID: 0x%016lX", (unsigned long)tid);
                 LOG_E(log_msg);
@@ -480,7 +480,8 @@ void handle_client(int client_sock) {
                         else if (btn_name == "CAPTURE") btn_bit = HiddbgNpadButton_Capture;
                         
                         if (btn_bit != 0) {
-                            HiddbgAbstractedPadState state = {0};
+                            HiddbgAbstractedPadState state;
+                            memset(&state, 0, sizeof(state));
                             state.state.buttons = btn_bit;
                             hiddbgSetAutoPilotVirtualPadState(0, &state);
                             svcSleepThread(duration * 1000000ULL);
@@ -524,7 +525,8 @@ void handle_client(int client_sock) {
             else if (strcmp(btn_name, "CAPTURE") == 0) btn_bit = HiddbgNpadButton_Capture;
 
             if (btn_bit != 0) {
-                HiddbgAbstractedPadState state = {0};
+                HiddbgAbstractedPadState state;
+                memset(&state, 0, sizeof(state));
                 state.state.buttons = btn_bit;
                 hiddbgSetAutoPilotVirtualPadState(0, &state);
                 svcSleepThread(100000000ULL); // 100ms hold
@@ -548,7 +550,7 @@ void handle_client(int client_sock) {
     close(client_sock);
 }
 
-int main(int argc, char **argv) {
+int main(int, char **) {
     setsysInitialize();
     psmInitialize();
     tsInitialize();

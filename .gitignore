@@ -40,3 +40,4 @@ Thumbs.db
 .gemini/
 logo_final.png
 scripts/deploy_emulator.ps1
+mypy_out.txt

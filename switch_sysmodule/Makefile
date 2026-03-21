@@ -19,10 +19,10 @@ STRIP	:=	$(PREFIX)strip
 NM		:=	$(PREFIX)nm
 
 #---------------------------------------------------------------------------------
-APP_VERSION	:=	0.2.2-dev
+APP_VERSION	:=	0.2.1
 DEFINES	:=	-D__SWITCH__ -DAPP_VERSION=\"$(APP_VERSION)\"
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections -fPIE $(ARCH) $(DEFINES) -I$(CURDIR)/include -I$(DEVKITPRO)/libnx/include -I$(DEVKITPRO)/portlibs/switch/include
-CXXFLAGS:=	$(CFLAGS) -fno-rtti -fno-exceptions
+CXXFLAGS:=	$(CFLAGS) -std=c++17 -fno-rtti -fno-exceptions
 LDFLAGS	:=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -pie -Wl,-Map,$(notdir $*.map) -L$(DEVKITPRO)/libnx/lib -L$(DEVKITPRO)/portlibs/switch/lib
 
 LIBS	:= -lcurl -lmbedtls -lmbedcrypto -lmbedx509 -lz -lnx

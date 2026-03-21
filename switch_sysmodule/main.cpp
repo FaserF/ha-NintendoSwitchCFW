@@ -10,6 +10,8 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/select.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -21,6 +23,10 @@
 #include <fcntl.h>
 #include <thread>
 #include <string>
+#include "include/json.hpp"
+
+using json = nlohmann::json;
+
 extern "C" {
     u32 __check_mask_save;
     
@@ -67,19 +73,26 @@ void handle_client(int client_sock) {
         return;
     }
 
-    const char* api_token = ConfigManager::getInstance().getApiToken();
-    char token_header[128];
-    snprintf(token_header, sizeof(token_header), "X-API-Token: %s", api_token);
-    
-    if (!strstr(buffer, token_header)) {
-        ConfigManager::getInstance().load();
-        api_token = ConfigManager::getInstance().getApiToken();
+    bool requires_auth = true;
+    if (strncmp(buffer, "GET /info", 9) == 0 || strncmp(buffer, "GET /health", 11) == 0) {
+        requires_auth = false;
+    }
+
+    if (requires_auth) {
+        const char* api_token = ConfigManager::getInstance().getApiToken();
+        char token_header[128];
         snprintf(token_header, sizeof(token_header), "X-API-Token: %s", api_token);
+        
         if (!strstr(buffer, token_header)) {
-            const char *resp = "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n\r\n{\"error\": \"Unauthorized\"}";
-            write(client_sock, resp, strlen(resp));
-            close(client_sock);
-            return;
+            ConfigManager::getInstance().load();
+            api_token = ConfigManager::getInstance().getApiToken();
+            snprintf(token_header, sizeof(token_header), "X-API-Token: %s", api_token);
+            if (!strstr(buffer, token_header)) {
+                const char *resp = "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n\r\n{\"error\": \"Unauthorized\"}";
+                write(client_sock, resp, strlen(resp));
+                close(client_sock);
+                return;
+            }
         }
     }
 
@@ -239,6 +252,16 @@ void handle_client(int client_sock) {
         const char *resp = "HTTP/1.1 200 OK\r\n\r\n{\"status\": \"ok\"}";
         write(client_sock, resp, strlen(resp));
         bpcInitialize(); bpcShutdownSystem(); bpcExit();
+    } else if (strstr(buffer, "POST /sleep")) {
+        LOG_I("System sleep requested");
+        const char *resp = "HTTP/1.1 200 OK\r\n\r\n{\"status\": \"ok\"}";
+        write(client_sock, resp, strlen(resp));
+        appletRequestToSleep();
+    } else if (strstr(buffer, "POST /reload_config")) {
+        ConfigManager::getInstance().load();
+        LOG_I("Config reloaded");
+        const char *resp = "HTTP/1.1 200 OK\r\n\r\n{\"status\": \"ok\"}";
+        write(client_sock, resp, strlen(resp));
     } else if (strstr(buffer, "POST /launch")) {
         char* id_ptr = strstr(buffer, "title_id=0x");
         if (id_ptr) {
@@ -264,6 +287,51 @@ void handle_client(int client_sock) {
         write(client_sock, resp, strlen(resp));
         bpcInitialize(); bpcRebootSystem(); bpcExit();
     } else if (strstr(buffer, "POST /button")) {
+        char* body = strstr(buffer, "\r\n\r\n");
+        if (body) {
+            body += 4;
+            if (body[0] == '{') {
+                json req = json::parse(body, nullptr, false);
+                if (!req.is_discarded() && req.contains("sequence") && req["sequence"].is_array()) {
+                    for (auto& step : req["sequence"]) {
+                        std::string btn_name = step.value("button", "");
+                        int duration = step.value("duration_ms", 100);
+                        u64 btn_bit = 0;
+                        if (btn_name == "A") btn_bit = HidNpadButton_A;
+                        else if (btn_name == "B") btn_bit = HidNpadButton_B;
+                        else if (btn_name == "X") btn_bit = HidNpadButton_X;
+                        else if (btn_name == "Y") btn_bit = HidNpadButton_Y;
+                        else if (btn_name == "L") btn_bit = HidNpadButton_L;
+                        else if (btn_name == "R") btn_bit = HidNpadButton_R;
+                        else if (btn_name == "ZL") btn_bit = HidNpadButton_ZL;
+                        else if (btn_name == "ZR") btn_bit = HidNpadButton_ZR;
+                        else if (btn_name == "PLUS") btn_bit = HidNpadButton_Plus;
+                        else if (btn_name == "MINUS") btn_bit = HidNpadButton_Minus;
+                        else if (btn_name == "LEFT") btn_bit = HidNpadButton_Left;
+                        else if (btn_name == "RIGHT") btn_bit = HidNpadButton_Right;
+                        else if (btn_name == "UP") btn_bit = HidNpadButton_Up;
+                        else if (btn_name == "DOWN") btn_bit = HidNpadButton_Down;
+                        else if (btn_name == "HOME") btn_bit = HiddbgNpadButton_Home;
+                        else if (btn_name == "CAPTURE") btn_bit = HiddbgNpadButton_Capture;
+                        
+                        if (btn_bit != 0) {
+                            HiddbgAbstractedPadState state = {0};
+                            state.state.buttons = btn_bit;
+                            hiddbgSetAutoPilotVirtualPadState(0, &state);
+                            svcSleepThread(duration * 1000000ULL);
+                            state.state.buttons = 0;
+                            hiddbgSetAutoPilotVirtualPadState(0, &state);
+                            svcSleepThread(50000000ULL); // 50ms pause
+                        }
+                    }
+                    const char *resp = "HTTP/1.1 200 OK\r\n\r\n{\"status\": \"ok\"}";
+                    write(client_sock, resp, strlen(resp));
+                    close(client_sock);
+                    return;
+                }
+            }
+        }
+
         char* name_ptr = strstr(buffer, "name=");
         if (name_ptr) {
             char btn_name[32] = {0};
@@ -294,7 +362,7 @@ void handle_client(int client_sock) {
                 HiddbgAbstractedPadState state = {0};
                 state.state.buttons = btn_bit;
                 hiddbgSetAutoPilotVirtualPadState(0, &state);
-                usleep(100000); // 100ms hold
+                svcSleepThread(100000000ULL); // 100ms hold
                 state.state.buttons = 0;
                 hiddbgSetAutoPilotVirtualPadState(0, &state);
                 

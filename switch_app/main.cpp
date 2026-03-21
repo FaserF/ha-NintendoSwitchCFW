@@ -255,19 +255,20 @@ void fetch_offline_boot_logs() {
 
 void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule_active, u64 loop_count) {
     printf("\x1b[H"); // Home
-    printf("\x1b[36m┌──────────────────────────────────────────────────────────────────────────┐\x1b[0m\x1b[K\n");
-    printf("\x1b[36m│\x1b[0m\x1b[1;37m        HOME ASSISTANT SWITCH v%-10s                           \x1b[0m\x1b[36m│\x1b[0m\x1b[K\n", APP_VERSION);
-    printf("\x1b[36m├───────────────────────────────┬──────────────────────────────────────────┤\x1b[0m\x1b[K\n");
+    printf("\x1b[46m\x1b[1;37m                                                                            \x1b[0m\x1b[K\n");
+    printf("\x1b[46m\x1b[1;37m        HOME ASSISTANT SWITCH v%-10s                           \x1b[0m\x1b[K\n", APP_VERSION);
+    printf("\x1b[46m\x1b[1;37m                                                                            \x1b[0m\x1b[K\n");
+    printf("\x1b[36m┌───────────────────────────────┬──────────────────────────────────────────┐\x1b[0m\x1b[K\n");
     
     // Left Pane: System Status
-    printf("\x1b[36m│\x1b[0m \x1b[1;34m[ SYSTEM STATUS ]\x1b[0m             \x1b[36m│\x1b[0m \x1b[1;34m[ UPDATES & CONFIG ]\x1b[0m                   \x1b[36m│\x1b[0m\x1b[K\n");
+    printf("\x1b[36m│\x1b[0m \x1b[1;94m[ SYSTEM STATUS ]\x1b[0m             \x1b[36m│\x1b[0m \x1b[1;94m[ UPDATES & CONFIG ]\x1b[0m                   \x1b[36m│\x1b[0m\x1b[K\n");
     
     printf("\x1b[36m│\x1b[0m Status:   %-18s \x1b[36m│\x1b[0m ", sysmodule_active ? "\x1b[1;32mACTIVE\x1b[0m" : "\x1b[1;31mINACTIVE\x1b[0m");
-    if (checking_update) printf("\x1b[5;33mChecking for updates...\x1b[0m              ");
-    else if (latest_ver == "") printf("\x1b[2mUpdate check pending... (X)      \x1b[0m     ");
+    if (checking_update) printf("\x1b[5;33mChecking updates...           \x1b[0m       ");
+    else if (latest_ver == "") printf("\x1b[2mPending check... (X)      \x1b[0m           ");
     else if (latest_ver != "none" && latest_ver != "error") {
-        if (latest_ver != APP_VERSION) printf("\x1b[1;42m\x1b[37m NEW v%-6s AVAILABLE! (Y) \x1b[0m      ", latest_ver.c_str());
-        else printf("\x1b[2mLatest version active (v%-6s)    \x1b[0m", latest_ver.c_str());
+        if (latest_ver != APP_VERSION) printf("\x1b[1;42m\x1b[37m NEW v%-6s READY! (Y) \x1b[0m           ", latest_ver.c_str());
+        else printf("\x1b[2mLatest version (v%-6s)         \x1b[0m", latest_ver.c_str());
     } else printf("\x1b[31mUpdate check failed              \x1b[0m     ");
     printf("\x1b[36m│\x1b[0m\x1b[K\n");
 
@@ -281,16 +282,11 @@ void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule
     }
     printf("Port: \x1b[1m%-5d\x1b[0m                        \x1b[36m│\x1b[0m\x1b[K\n", ConfigManager::getInstance().getPort());
 
-    NifmInternetConnectionStatus net_status;
-    const char* net_s = "Unknown";
-    if (R_SUCCEEDED(nifmGetInternetConnectionStatus(NULL, NULL, &net_status))) {
-        net_s = (net_status == NifmInternetConnectionStatus_Connected) ? "\x1b[1;32mOnline\x1b[0m" : "\x1b[1;31mOffline\x1b[0m";
-    }
-    printf("\x1b[36m│\x1b[0m Network:  %-25s \x1b[36m│\x1b[0m ", net_s);
+    printf("\x1b[36m│\x1b[0m Pwr Mode: \x1b[1;32m%-15s\x1b[0m    \x1b[36m│\x1b[0m ", "Balanced (Wait)");
     printf("Token: \x1b[1;33m%-15s\x1b[0m           \x1b[36m│\x1b[0m\x1b[K\n", ConfigManager::getInstance().getApiToken()[0] ? ConfigManager::getInstance().getApiToken() : "MISSING");
 
     printf("\x1b[36m├───────────────────────────────┴──────────────────────────────────────────┤\x1b[0m\x1b[K\n");
-    printf("\x1b[36m│\x1b[0m \x1b[1;34m[ SYSTEM LOGS ]\x1b[0m                                                          \x1b[36m│\x1b[0m\x1b[K\n");
+    printf("\x1b[36m│\x1b[0m \x1b[1;94m[ SYSTEM LOGS ]\x1b[0m                                                          \x1b[36m│\x1b[0m\x1b[K\n");
     
     if (g_app_logs.empty()) {
         for(int i=0; i<10; i++) printf("\x1b[36m│\x1b[0m %-72s \x1b[36m│\x1b[0m\x1b[K\n", i == 0 ? "Waiting for sysmodule bridge..." : "");
@@ -308,9 +304,8 @@ void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule
     }
 
     printf("\x1b[36m└──────────────────────────────────────────────────────────────────────────┘\x1b[0m\x1b[K\n");
-    printf(" \x1b[1;37m(X)Check  (Y)Update/Install  (ZR)Reset  (-)DevMode  (+)Exit\x1b[0m\x1b[K\n");
-    if (g_dev_mode) printf(" \x1b[45m\x1b[1;37m DEV MODE ACTIVE \x1b[0m  UDP Broadcast on Port 2828\x1b[K\n");
-    else printf("\x1b[K\n");
+    printf(" \x1b[1;37m(X)Check  (Y)Update  (ZR)Reset  (-)DevMode  (+)Exit\x1b[0m\x1b[K\n");
+    if (g_dev_mode) printf(" \x1b[45m\x1b[1;37m DEV MODE ACTIVE \x1b[0m  UDP: 2828\x1b[K\n");
 }
 
 int main(int argc, char **argv) {

@@ -354,6 +354,38 @@ void handle_client(int client_sock) {
         return;
     }
 
+    if (strstr(buffer, "POST /command")) {
+        const char* body = strstr(buffer, "\r\n\r\n");
+        if (body) {
+            body += 4;
+            json j = json::parse(body, nullptr, false);
+            if (!j.is_discarded() && j.contains("action")) {
+                std::string action = j.value("action", "");
+                Result rc = 0;
+                if (action == "reboot") {
+                    bpcRebootSystem();
+                } else if (action == "shutdown") {
+                    bpcShutdownSystem();
+                } else if (action == "launch_app" && j.contains("title_id")) {
+                    std::string tid_str = j.value("title_id", "");
+                    u64 tid = strtoull(tid_str.c_str(), NULL, 16);
+                    rc = appletRequestLaunchApplication(tid, NULL);
+                }
+                
+                std::string resp_body = "{\"status\": \"ok\", \"rc\": " + std::to_string(rc) + "}";
+                char resp[256];
+                snprintf(resp, sizeof(resp), "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %zu\r\n\r\n", resp_body.length());
+                write(client_sock, resp, strlen(resp));
+                write(client_sock, resp_body.c_str(), resp_body.length());
+            } else {
+                const char* resp = "HTTP/1.1 400 Bad Request\r\n\r\n{\"error\": \"Missing action\"}";
+                write(client_sock, resp, strlen(resp));
+            }
+        }
+        close(client_sock);
+        return;
+    }
+
     if (strstr(buffer, "GET /logs")) {
         u32 count = Logger::getInstance().getLogCount();
         std::string json_out = "[";
@@ -587,24 +619,13 @@ int main(int argc, char **argv) {
         if (f) { fprintf(f, "[OK] Server listening on port %d\n", ConfigManager::getInstance().getPort()); fclose(f); }
     }
 
-    // Make server_fd non-blocking
-    int flags = fcntl(server_fd, F_GETFL, 0);
-    fcntl(server_fd, F_SETFL, flags | O_NONBLOCK);
-
-    int mdns_sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (mdns_sock < 0) {
-        LOG_E("Failed to create mDNS socket");
-    }
-    struct sockaddr_in mdns_addr;
-    mdns_addr.sin_family = AF_INET;
-    mdns_addr.sin_port = htons(5353);
-    mdns_addr.sin_addr.s_addr = inet_addr("224.0.0.251");
-
+    // Power Optimization: Leave server_fd in blocking mode. 
+    // This allows the server thread to spend most of its time suspended, saving battery.
+    
     while (true) {
         if ((client_sock = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) >= 0) {
             std::thread(handle_client, client_sock).detach();
         }
-        svcSleepThread(10000000ULL); // 10ms sleep
     }
 
     capsscExit();

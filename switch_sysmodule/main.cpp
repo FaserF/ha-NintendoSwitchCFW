@@ -13,6 +13,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <switch/services/bpc.h>
@@ -52,6 +53,66 @@ extern "C" {
 #include "include/Logger.h"
 
 Logger g_logger;
+
+#ifndef IP_ADD_MEMBERSHIP
+#define IP_ADD_MEMBERSHIP 12
+#endif
+
+// Manually define ip_mreq since it might be missing in some libnx environments
+struct switch_ip_mreq {
+    struct in_addr imr_multiaddr;
+    struct in_addr imr_interface;
+};
+
+void mdns_responder() {
+    int sd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sd < 0) return;
+
+    int reuse = 1;
+    setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(5353);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(sd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        close(sd);
+        return;
+    }
+
+    struct switch_ip_mreq mreq;
+    mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
+    mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+    setsockopt(sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+
+    unsigned char buffer[1024];
+    while (1) {
+        struct sockaddr_in client_addr;
+        socklen_t addr_len = sizeof(client_addr);
+        int n = recvfrom(sd, buffer, sizeof(buffer), 0, (struct sockaddr*)&client_addr, &addr_len);
+        if (n > 12) {
+            // Check for "_homeassistant" label in query
+            if ((buffer[2] & 0x80) == 0 && strstr((char*)buffer + 12, "_homeassistant")) {
+                u32 ip = 0; nifmGetCurrentIpAddress(&ip);
+                unsigned char response[] = {
+                    0x00, 0x00, 0x84, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                    0x06, 's', 'w', 'i', 't', 'c', 'h', 0x05, 'l', 'o', 'c', 'a', 'l', 0x00,
+                    0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x04, 
+                    (unsigned char)(ip & 0xFF), (unsigned char)((ip >> 8) & 0xFF), 
+                    (unsigned char)((ip >> 16) & 0xFF), (unsigned char)((ip >> 24) & 0xFF)
+                };
+                struct sockaddr_in target_addr;
+                target_addr.sin_family = AF_INET;
+                target_addr.sin_port = htons(5353);
+                target_addr.sin_addr.s_addr = inet_addr("224.0.0.251");
+                sendto(sd, response, sizeof(response), 0, (struct sockaddr*)&target_addr, sizeof(target_addr));
+            }
+        }
+        svcSleepThread(500000000ULL); // 0.5s yield
+    }
+}
 
 void handle_client(int client_sock) {
     struct timeval tv;
@@ -466,6 +527,8 @@ int main(int argc, char **argv) {
     hiddbgInitialize();
     capsscInitialize();
     
+    std::thread(mdns_responder).detach();
+    
     g_logger.init();
     LOG_I("Home Assistant Sysmodule started (v" APP_VERSION ")");
     
@@ -537,25 +600,7 @@ int main(int argc, char **argv) {
     mdns_addr.sin_port = htons(5353);
     mdns_addr.sin_addr.s_addr = inet_addr("224.0.0.251");
 
-    u64 last_mdns = 0;
-
     while (true) {
-        u64 now = svcGetSystemTick() / 19200000;
-        if (now - last_mdns > 10) { // Every 10 seconds
-            unsigned char packet[] = {
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x06, 's', 'w', 'i', 't', 'c', 'h', 0x05, 'l', 'o', 'c', 'a', 'l', 0x00,
-                0x00, 0x0c, 0x00, 0x01
-            };
-            if (mdns_sock >= 0) {
-                sendto(mdns_sock, packet, sizeof(packet), 0, (struct sockaddr *)&mdns_addr, sizeof(mdns_addr));
-            }
-            char heartbeat[64];
-            snprintf(heartbeat, sizeof(heartbeat), "Sysmodule Heartbeat (Up: %lus)", (unsigned long)now);
-            Logger::getInstance().log(LOG_LEVEL_INFO, heartbeat);
-            last_mdns = now;
-        }
-
         if ((client_sock = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) >= 0) {
             std::thread(handle_client, client_sock).detach();
         }

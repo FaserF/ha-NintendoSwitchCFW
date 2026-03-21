@@ -39,6 +39,7 @@ from .api import SwitchAPI
 from .const import (
     ATTR_APP_VERSION,
     CONF_API_TOKEN,
+    CONF_PORT,
     CONF_UPDATE_REPO,
     DEFAULT_PORT,
     DOMAIN,
@@ -166,9 +167,10 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
         if user_input is not None:
             self._host = user_input[CONF_HOST]
             token = user_input[CONF_API_TOKEN]
+            port = user_input.get(CONF_PORT, DEFAULT_PORT)
             try:
-                # Test connection with the provided token
-                api = SwitchAPI(self._host, token, async_get_clientsession(self.hass))
+                # Test connection with the provided token and port
+                api = SwitchAPI(self._host, token, port, async_get_clientsession(self.hass))
                 info = await api.get_info()
                 if not isinstance(info, dict):
                     errors["base"] = "cannot_connect"
@@ -203,6 +205,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     data={
                         CONF_HOST: self._host,
                         CONF_API_TOKEN: token,
+                        CONF_PORT: port,
                     },
                 )
             except aiohttp.ClientResponseError as err:
@@ -232,6 +235,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                 {
                     vol.Required(CONF_HOST): cv.string,
                     vol.Required(CONF_API_TOKEN): cv.string,
+                    vol.Required(CONF_PORT, default=DEFAULT_PORT): cv.port,
                     vol.Optional(CONF_NAME, default="Nintendo Switch"): cv.string,
                 }
             ),
@@ -264,11 +268,12 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
 
         if user_input is not None:
             token = user_input[CONF_API_TOKEN]
+            port = user_input.get(CONF_PORT, DEFAULT_PORT)
             try:
                 # Test connection with the provided token
                 if self._host is None:
                     return self.async_abort(reason="cannot_connect")
-                api = SwitchAPI(self._host, token, async_get_clientsession(self.hass))
+                api = SwitchAPI(self._host, token, port, async_get_clientsession(self.hass))
                 info = await api.get_info()
 
                 # Check version
@@ -291,6 +296,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     data={
                         CONF_HOST: self._host,
                         CONF_API_TOKEN: token,
+                        CONF_PORT: port,
                     },
                 )
             except aiohttp.ClientResponseError as err:
@@ -318,7 +324,10 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
 
         return self.async_show_form(
             step_id="discovery_confirm",
-            data_schema=vol.Schema({vol.Required(CONF_API_TOKEN): str}),
+            data_schema=vol.Schema({
+                vol.Required(CONF_API_TOKEN): str,
+                vol.Required(CONF_PORT, default=DEFAULT_PORT): cv.port,
+            }),
             errors=errors,
         )
 

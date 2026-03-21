@@ -19,7 +19,7 @@
 using json = nlohmann::json;
 
 #ifndef APP_VERSION
-#define APP_VERSION "1.0.0"
+#define APP_VERSION "0.2.2"
 #endif
 
 #define REPO_NAME "FaserF/ha-NintendoSwitchCFW"
@@ -50,10 +50,11 @@ static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 // Global state
 std::string latest_date = "";
 bool g_dev_mode = false;
+bool g_is_applet_mode = false;
 std::vector<std::string> g_app_logs;
 
 void add_app_log(const std::string& msg) {
-    if (g_app_logs.size() > 15) g_app_logs.erase(g_app_logs.begin());
+    if (g_app_logs.size() > 30) g_app_logs.erase(g_app_logs.begin());
     g_app_logs.push_back(msg);
 
     if (g_dev_mode) {
@@ -75,45 +76,54 @@ void add_app_log(const std::string& msg) {
 std::string get_latest_version(std::string& date) {
     CURL *curl_handle;
     CURLcode res;
-    struct MemoryStruct chunk;
-    chunk.memory = (char*)malloc(1);
-    chunk.size = 0;
+    struct MemoryStruct chunk = {(char*)malloc(1), 0};
 
-    curl_handle = curl_easy_init();
-    curl_easy_setopt(curl_handle, CURLOPT_URL, "https://api.github.com/repos/" REPO_NAME "/releases/latest");
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 5L); 
-
-    res = curl_easy_perform(curl_handle);
-    std::string version = "";
-    if (res == CURLE_OK) {
-        json j = json::parse(chunk.memory, nullptr, false);
-        if (!j.is_discarded() && j.contains("tag_name")) {
-            version = j.value("tag_name", "");
-            date = j.value("published_at", "");
-            if (!date.empty() && date.length() > 10) date = date.substr(0, 10); 
-            if (!version.empty() && version[0] == 'v') version = version.substr(1);
-        } else {
-            std::string errMsg = j.value("message", "API Limit or Missing Release");
-            char errLog[256];
-            snprintf(errLog, sizeof(errLog), "\x1b[31m[ERROR] Update check: %s\x1b[0m", errMsg.substr(0, 50).c_str());
-            add_app_log(errLog);
-            version = "none";
+    auto fetch = [&](const char* url) -> bool {
+        chunk.size = 0;
+        curl_handle = curl_easy_init();
+        curl_easy_setopt(curl_handle, CURLOPT_URL, url);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "HomeAssistant-Switch-Integration/1.0"); 
+        curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 10L); 
+        res = curl_easy_perform(curl_handle);
+        long response_code = 0;
+        curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+        curl_easy_cleanup(curl_handle);
+        if (res != CURLE_OK) {
+            char fail[128]; snprintf(fail, sizeof(fail), "\x1b[31m[ERROR] Curl: %s\x1b[0m", curl_easy_strerror(res));
+            add_app_log(fail);
+        } else if (response_code != 200) {
+            char fail[128]; snprintf(fail, sizeof(fail), "\x1b[31m[ERROR] HTTP %ld (Rate limit?)\x1b[0m", response_code);
+            add_app_log(fail);
         }
-    } else {
-        char err[128];
-        snprintf(err, sizeof(err), "\x1b[31m[ERROR] Update fetch failed: %s\x1b[0m", curl_easy_strerror(res));
-        add_app_log(err);
-        version = "error";
+        return (res == CURLE_OK && response_code == 200);
+    };
+
+    if (!fetch("https://api.github.com/repos/" REPO_NAME "/releases/latest")) {
+        if (!fetch("https://api.github.com/repos/" REPO_NAME "/releases")) {
+            add_app_log("\x1b[31m[ERROR] Update API unreachable\x1b[0m");
+            free(chunk.memory); return "error";
+        }
     }
 
-    curl_easy_cleanup(curl_handle);
+    json j = json::parse(chunk.memory, nullptr, false);
     free(chunk.memory);
-    return version;
+    if (j.is_discarded()) return "error";
+
+    json release = j.is_array() && !j.empty() ? j[0] : j;
+    if (release.contains("tag_name")) {
+        std::string version = release.value("tag_name", "");
+        date = release.value("published_at", "");
+        if (!date.empty() && date.length() > 10) date = date.substr(0, 10); 
+        if (!version.empty() && version[0] == 'v') version = version.substr(1);
+        return version;
+    }
+    
+    add_app_log("\x1b[31m[ERROR] No releases found\x1b[0m");
+    return "none";
 }
 
 bool download_file(const std::string& url, const std::string& path) {
@@ -149,17 +159,41 @@ bool file_exists(const char* path) {
     return (stat(path, &st) == 0);
 }
 
-void check_and_fix_sysmodule() {
-    const char* path = "sdmc:/atmosphere/contents/010000000000CAFE/exefs/main";
-    if (!file_exists(path)) {
-        add_app_log("\x1b[33m[WARN] Sysmodule missing! Auto-safeguard active...\x1b[0m");
+void check_and_fix_sysmodule(bool manual = false) {
+    const char* main_path = "sdmc:/atmosphere/contents/010000000000CAFE/exefs/main";
+    const char* npdm_path = "sdmc:/atmosphere/contents/010000000000CAFE/exefs/main.npdm";
+    
+    struct stat st1, st2;
+    bool main_exists = (stat(main_path, &st1) == 0 && st1.st_size > 1000);
+    bool npdm_exists = (stat(npdm_path, &st2) == 0 && st2.st_size > 100);
+
+    char msg[256]; snprintf(msg, sizeof(msg), "[DEBUG] Verifying: %s", main_path);
+    add_app_log(msg);
+
+    if (manual) add_app_log("\x1b[36m[INFO] Manual repair starts...\x1b[0m");
+
+    if (!main_exists || !npdm_exists || manual) {
+        if (!manual) add_app_log("\x1b[33m[WARN] Sysmodule missing or invalid size! Recovering...\x1b[0m");
+        else add_app_log("\x1b[35m[INFO] Forced re-downloading fresh sysmodule files...\x1b[0m");
+        
         std::string date;
         std::string version = get_latest_version(date);
-        if (version != "error" && version != "none") {
+        if (version != "error" && version != "none" && version != "") {
             make_dirs("sdmc:/atmosphere/contents/010000000000CAFE/exefs");
-            std::string url = std::string(REPO_URL) + "/releases/download/v" + version + "/" + NSO_FILENAME;
-            if (download_file(url, path)) add_app_log("\x1b[32m[SUCCESS] Sysmodule restored. Restart required.\x1b[0m");
+            std::string url_main = std::string(REPO_URL) + "/releases/download/v" + version + "/main";
+            std::string url_npdm = std::string(REPO_URL) + "/releases/download/v" + version + "/main.npdm";
+            add_app_log("[INFO] Requesting files from GitHub...");
+            bool ok1 = download_file(url_main, main_path);
+            bool ok2 = download_file(url_npdm, npdm_path);
+            if (ok1 && ok2) {
+                add_app_log("\x1b[32m[SUCCESS] Sysmodule restored. REBOOT REQUIRED.\x1b[0m");
+                add_app_log("\x1b[32m[SYSTEM] Please restart your Switch now!\x1b[0m");
+            } else add_app_log("\x1b[31m[ERROR] Download failed. Check internet.\x1b[0m");
+        } else {
+            add_app_log("\x1b[31m[ERROR] FAILED to fetch release info from GitHub.\x1b[0m");
         }
+    } else {
+        // Only reached if !manual and both exist
     }
 }
 
@@ -178,9 +212,10 @@ std::string get_sysmodule_ip() {
     return "127.0.0.1";
 }
 
-bool try_connect(const std::string& ip, int port) {
+std::string try_connect(const std::string& ip, int port) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) return false;
+    if (sock < 0) return "Socket Fail";
+    
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -189,27 +224,50 @@ bool try_connect(const std::string& ip, int port) {
 
     int flags = fcntl(sock, F_GETFL, 0);
     fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+    
     int res = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    if (res < 0 && errno == EINPROGRESS) {
-        struct timeval tv = {2, 0}; // 2s timeout
-        fd_set myset; FD_ZERO(&myset); FD_SET(sock, &myset);
-        if (select(sock + 1, NULL, &myset, NULL, &tv) > 0) {
-            int v; socklen_t l = sizeof(int);
-            getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)(&v), &l);
-            res = (v == 0) ? 0 : -1;
-        } else res = -1;
+    int err_code = 0;
+    
+    if (res < 0) {
+        if (errno == EINPROGRESS) {
+            struct timeval tv = {2, 0}; // 2s timeout
+            fd_set myset; FD_ZERO(&myset); FD_SET(sock, &myset);
+            if (select(sock + 1, NULL, &myset, NULL, &tv) > 0) {
+                socklen_t l = sizeof(int);
+                getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)(&err_code), &l);
+                res = (err_code == 0) ? 0 : -1;
+            } else {
+                res = -1;
+                err_code = ETIMEDOUT;
+            }
+        } else {
+            err_code = errno;
+        }
     }
 
     fcntl(sock, F_SETFL, flags);
     close(sock);
-    return (res == 0);
+
+    if (res == 0) return "";
+    
+    if (err_code == ECONNREFUSED) return "Refused (Process Missing?)";
+    if (err_code == ETIMEDOUT) return "Timeout (Blocked)";
+    if (err_code == EHOSTUNREACH) return "Net Unreachable";
+    char generic[32]; snprintf(generic, sizeof(generic), "Error %d", err_code);
+    return generic;
 }
+
+std::string g_sys_status_msg = "";
 
 bool is_sysmodule_running() {
     int port = ConfigManager::getInstance().getPort();
-    std::string ip = get_sysmodule_ip();
-    if (try_connect(ip, port)) return true;
-    if (ip != "127.0.0.1" && try_connect("127.0.0.1", port)) return true;
+    // Try localhost first as it's most reliable on-console
+    std::string err = try_connect("127.0.0.1", port);
+    if (err == "") {
+        g_sys_status_msg = "Bridge OK";
+        return true;
+    }
+    g_sys_status_msg = err;
     return false;
 }
 
@@ -217,7 +275,8 @@ void fetch_sysmodule_logs() {
     struct MemoryStruct chunk = {(char*)malloc(1), 0};
     CURL *curl = curl_easy_init();
     char url[256];
-    snprintf(url, sizeof(url), "http://%s:%d/logs", get_sysmodule_ip().c_str(), ConfigManager::getInstance().getPort());
+    // Use localhost for log fetching too
+    snprintf(url, sizeof(url), "http://127.0.0.1:%d/logs", ConfigManager::getInstance().getPort());
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &chunk);
@@ -239,77 +298,116 @@ void fetch_sysmodule_logs() {
 }
 
 void fetch_offline_boot_logs() {
-    FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "r");
+    static long last_pos = 0;
+    FILE *f = fopen("sdmc:/config/HomeAssistantSwitch/ha_sysmodule_boot.log", "r");
     if (f) {
+        fseek(f, 0, SEEK_END);
+        long current_size = ftell(f);
+        if (current_size < last_pos) last_pos = 0; // Reset if file was recreated
+
+        fseek(f, last_pos, SEEK_SET);
         char line[256];
         while (fgets(line, sizeof(line), f)) {
             line[strcspn(line, "\r\n")] = 0;
+            if (line[0] == '\0') continue;
             char entry[300];
             snprintf(entry, sizeof(entry), "\x1b[35m[BOOT] %s\x1b[0m", line);
             add_app_log(entry);
         }
+        last_pos = ftell(f);
         fclose(f);
-        remove("sdmc:/ha_sysmodule_boot.log");
     }
 }
 
 void draw_ui(const std::string& latest_ver, bool checking_update, bool sysmodule_active, u64) {
     printf("\x1b[H"); // Home
-    printf("\x1b[46m\x1b[1;37m                                                                            \x1b[0m\x1b[K\n");
-    printf("\x1b[46m\x1b[1;37m        HOME ASSISTANT SWITCH v%-10s                           \x1b[0m\x1b[K\n", APP_VERSION);
-    printf("\x1b[46m\x1b[1;37m                                                                            \x1b[0m\x1b[K\n");
-    printf("\x1b[36m┌───────────────────────────────┬──────────────────────────────────────────┐\x1b[0m\x1b[K\n");
+    // Header (80 chars wide)
+    printf("\x1b[44m\x1b[1;37m                                                                                \x1b[0m\r");
+    printf("\x1b[44m\x1b[1;37m          HOME ASSISTANT SWITCH v%-10s                                    \x1b[0m\n", APP_VERSION);
+    printf("\x1b[44m\x1b[1;37m                                                                                \x1b[0m\n");
     
-    // Left Pane: System Status
-    printf("\x1b[36m│\x1b[0m \x1b[1;94m[ SYSTEM STATUS ]\x1b[0m             \x1b[36m│\x1b[0m \x1b[1;94m[ UPDATES & CONFIG ]\x1b[0m                   \x1b[36m│\x1b[0m\x1b[K\n");
+    printf("+------------------------------------+-------------------------------------+\n");
     
-    printf("\x1b[36m│\x1b[0m Status:   %-18s \x1b[36m│\x1b[0m ", sysmodule_active ? "\x1b[1;32mACTIVE\x1b[0m" : "\x1b[1;31mINACTIVE\x1b[0m");
-    if (checking_update) printf("\x1b[5;33mChecking updates...           \x1b[0m       ");
-    else if (latest_ver == "") printf("\x1b[2mPending check... (X)      \x1b[0m           ");
+    // Line 1: Status & Update info
+    printf("| Status:");
+    printf("\x1b[11G"); // Move to col 11
+    if (sysmodule_active) printf("\x1b[1;32mACTIVE (Bridge OK)  \x1b[0m");
+    else printf("\x1b[1;31mINACTIVE (%s)  \x1b[0m", g_sys_status_msg.substr(0,18).c_str());
+    
+    printf("\x1b[38G| "); // Move to col 38
+    if (checking_update) printf("\x1b[5;33mChecking updates...\x1b[0m");
+    else if (latest_ver == "") printf("\x1b[2mPending check (X)\x1b[0m");
     else if (latest_ver != "none" && latest_ver != "error") {
-        if (latest_ver != APP_VERSION) printf("\x1b[1;42m\x1b[37m NEW v%-6s READY! (Y) \x1b[0m           ", latest_ver.c_str());
-        else printf("\x1b[2mLatest version (v%-6s)         \x1b[0m", latest_ver.c_str());
-    } else printf("\x1b[31mUpdate check failed              \x1b[0m     ");
-    printf("\x1b[36m│\x1b[0m\x1b[K\n");
+        if (latest_ver != APP_VERSION) {
+            if (APP_VERSION > latest_ver) printf("\x1b[1;34mRunning newer dev build\x1b[0m");
+            else printf("\x1b[1;42m\x1b[37m NEW v%-6s READY! (Y) \x1b[0m", latest_ver.c_str());
+        }
+        else printf("\x1b[2mLatest version (v%-6s)\x1b[0m", latest_ver.c_str());
+    } else printf("\x1b[31mUpdate check failed\x1b[0m");
+    printf("\x1b[76G|\n");
 
-    u32 ip = 0;
-    struct in_addr addr;
+    // Line 2: IP & Port
+    printf("| IP:");
+    printf("\x1b[11G");
+    u32 ip = 0; struct in_addr addr;
     if (R_SUCCEEDED(nifmGetCurrentIpAddress(&ip)) && ip != 0) {
         addr.s_addr = ip;
-        printf("\x1b[36m│\x1b[0m IP:       \x1b[1;32m%-15s\x1b[0m    \x1b[36m│\x1b[0m ", inet_ntoa(addr));
-    } else {
-        printf("\x1b[36m│\x1b[0m IP:       \x1b[1;31mDisconnected\x1b[0m       \x1b[36m│\x1b[0m ");
-    }
-    printf("Port: \x1b[1m%-5d\x1b[0m                        \x1b[36m│\x1b[0m\x1b[K\n", ConfigManager::getInstance().getPort());
-
-    printf("\x1b[36m│\x1b[0m Pwr Mode: \x1b[1;32m%-15s\x1b[0m    \x1b[36m│\x1b[0m ", "Balanced (Wait)");
-    printf("Token: \x1b[1;33m%-15s\x1b[0m           \x1b[36m│\x1b[0m\x1b[K\n", ConfigManager::getInstance().getApiToken()[0] ? ConfigManager::getInstance().getApiToken() : "MISSING");
-
-    printf("\x1b[36m├───────────────────────────────┴──────────────────────────────────────────┤\x1b[0m\x1b[K\n");
-    printf("\x1b[36m│\x1b[0m \x1b[1;94m[ SYSTEM LOGS ]\x1b[0m                                                          \x1b[36m│\x1b[0m\x1b[K\n");
+        printf("\x1b[1;32m%-15s\x1b[0m", inet_ntoa(addr));
+    } else printf("\x1b[1;31mDisconnected\x1b[0m");
     
+    printf("\x1b[38G| Port: \x1b[1m%-5d\x1b[0m", ConfigManager::getInstance().getPort());
+    printf("\x1b[76G|\n");
+
+    // Line 3: Pwr Mode & Token
+    printf("| Mode: \x1b[1;32mBalanced  \x1b[0m");
+    printf("\x1b[38G| Token: \x1b[1;33m%-25s\x1b[0m", ConfigManager::getInstance().getApiToken());
+    printf("\x1b[76G|\n");
+
+    printf("+------------------------------------+-------------------------------------+\n");
+    printf("| \x1b[1;34m[ SYSTEM LOGS ]\x1b[0m                                                          |\n");
+    
+    const int log_lines = 27;
     if (g_app_logs.empty()) {
-        for(int i=0; i<10; i++) printf("\x1b[36m│\x1b[0m %-72s \x1b[36m│\x1b[0m\x1b[K\n", i == 0 ? "Waiting for sysmodule bridge..." : "");
+        for(int i=0; i<log_lines; i++) printf("| %-72s |\n", i == 0 ? "Waiting for sysmodule bridge..." : "");
     } else {
-        size_t start = (g_app_logs.size() > 10) ? g_app_logs.size() - 10 : 0;
-        for (size_t i = 0; i < 10; i++) {
-            printf("\x1b[36m│\x1b[0m ");
+        size_t start = (g_app_logs.size() > (size_t)log_lines) ? g_app_logs.size() - (size_t)log_lines : 0;
+        for (int i = 0; i < log_lines; i++) {
+            printf("| ");
             if (start + i < g_app_logs.size()) {
                 printf("%s", g_app_logs[start + i].c_str());
-                printf("\x1b[75G\x1b[36m│\x1b[0m\x1b[K\n");
-            } else {
-                printf("%-72s \x1b[36m│\x1b[0m\x1b[K\n", "");
             }
+            printf("\x1b[76G|\n");
         }
     }
 
-    printf("\x1b[36m└──────────────────────────────────────────────────────────────────────────┘\x1b[0m\x1b[K\n");
-    printf(" \x1b[1;37m(X)Check  (Y)Update  (ZR)Reset  (-)DevMode  (+)Exit\x1b[0m\x1b[K\n");
-    if (g_dev_mode) printf(" \x1b[45m\x1b[1;37m DEV MODE ACTIVE \x1b[0m  UDP: 2828\x1b[K\n");
+    printf("+--------------------------------------------------------------------------+\n");
+    
+    // Fixed Footer at Row 40+
+    printf("\x1b[40;1H (X)Check  (Y)Update  (ZR)Reset  (-)DevMode  (+)Exit\n");
+    printf("\x1b[42;1H Brought to you by \x1b[1;32mFaserF\x1b[0m - \x1b[1;94m" REPO_URL "\x1b[0m\n");
+    
+    if (g_dev_mode) {
+        printf("\x1b[43;1H \x1b[45m\x1b[1;37m DEV MODE ACTIVE \x1b[0m  UDP: 2828                                      \n");
+    } else {
+        printf("\x1b[43;1H                                                                                \n");
+    }
+
+    if (g_is_applet_mode) {
+        printf("\x1b[44;1H \x1b[41m\x1b[1;37m APPLET MODE \x1b[0m Limited RAM. Hold R on game for full mode.         \n");
+    } else {
+        printf("\x1b[44;1H                                                                                \n");
+    }
+
+    if (!sysmodule_active) {
+        printf("\x1b[20;20H\x1b[1;41m\x1b[37m  !!! SYSTEM REBOOT REQUIRED !!!  \x1b[0m");
+        printf("\x1b[21;18H\x1b[1;31m   Atmosphere must restart to load   \x1b[0m");
+        printf("\x1b[22;18H\x1b[1;31m   the sysmodule from /contents/     \x1b[0m");
+    }
 }
 
 int main(int, char **) {
     consoleInit(NULL); consoleClear();
+    g_is_applet_mode = (appletGetAppletType() == AppletType_LibraryApplet);
     
     // CRITICAL: Initialize sockets before curl or any network activity
     if (R_FAILED(socketInitializeDefault())) {
@@ -339,13 +437,18 @@ int main(int, char **) {
         if (!nso_checked) { u32 ip = 0; if (R_SUCCEEDED(nifmGetCurrentIpAddress(&ip)) && ip != 0) { check_and_fix_sysmodule(); nso_checked = true; } }
         
         u64 now = svcGetSystemTick() / 19200000;
-        if (now - last_sysmodule_check > 5) {
+        if (now - last_sysmodule_check > 2) { // 2s check interval for faster response
+            fetch_offline_boot_logs(); 
             sysmodule_active = is_sysmodule_running();
-            if (sysmodule_active) fetch_sysmodule_logs();
-            else { 
-                fetch_offline_boot_logs();
-                char err[128]; snprintf(err, sizeof(err), "\x1b[31m[ERROR] Connection failed (%s:%d)\x1b[0m", get_sysmodule_ip().c_str(), ConfigManager::getInstance().getPort()); 
+            if (sysmodule_active) {
+                fetch_sysmodule_logs();
+            } else { 
+                char err[128]; snprintf(err, sizeof(err), "\x1b[31m[ERROR] Bridge: %s (Port %d)\x1b[0m", g_sys_status_msg.c_str(), ConfigManager::getInstance().getPort()); 
                 add_app_log(err); 
+                if (loop_count % 10 == 0) {
+                    add_app_log("\x1b[33m[HINT] No bridge? Check /config/HomeAssistantSwitch/boot.log\x1b[0m");
+                    check_and_fix_sysmodule(); // Aggressive retry
+                }
             }
             last_sysmodule_check = now;
         }
@@ -357,11 +460,30 @@ int main(int, char **) {
             if (g_dev_mode) add_app_log("\x1b[35m[SYSTEM] Dev Mode ON\x1b[0m");
             else add_app_log("\x1b[35m[SYSTEM] Dev Mode OFF\x1b[0m");
         }
-        if (kDown & HidNpadButton_X) { checking_update = true; draw_ui(latest_ver, checking_update, sysmodule_active, loop_count); consoleUpdate(NULL); latest_ver = get_latest_version(latest_date); checking_update = false; }
+        if (kDown & HidNpadButton_ZR) {
+            add_app_log("\x1b[33m[SYSTEM] Resetting and verifying integrity...\x1b[0m");
+            ConfigManager::getInstance().generateDefaultConfig();
+            ConfigManager::getInstance().save();
+            ConfigManager::getInstance().load();
+            check_and_fix_sysmodule(true); // Manual verbose repair
+        }
+        if (kDown & HidNpadButton_X) { 
+            checking_update = true; draw_ui(latest_ver, checking_update, sysmodule_active, loop_count); consoleUpdate(NULL); 
+            latest_ver = get_latest_version(latest_date); checking_update = false; 
+        }
         if ((kDown & HidNpadButton_Y) && latest_ver != "" && latest_ver != APP_VERSION && latest_ver != "none" && latest_ver != "error") {
-            if (download_update(latest_ver)) { add_app_log("\x1b[32mUpdate Done! Restart.\x1b[0m"); consoleUpdate(NULL); sleep(2); break; }
+            if (download_update(latest_ver)) { 
+                add_app_log("\x1b[32mUpdate Done! Exiting...\x1b[0m"); 
+                for(int i=0; i<60; i++) { consoleUpdate(NULL); svcSleepThread(16666666ULL); }
+                break; 
+            }
         }
         consoleUpdate(NULL); svcSleepThread(16666666ULL);
     }
-    nifmExit(); curl_global_cleanup(); socketExit(); consoleExit(NULL); return 0;
+    
+    curl_global_cleanup();
+    socketExit();
+    nifmExit();
+    consoleExit(NULL);
+    return 0;
 }

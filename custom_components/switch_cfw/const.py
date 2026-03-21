@@ -8,21 +8,22 @@ LOGGER = logging.getLogger(DOMAIN)
 STARTUP_MESSAGE = f"""
 -------------------------------------------------------------------
 {DOMAIN}
-Version: 0.2.2-dev
+Version: 0.2.2
 This is a custom integration!
 If you have any issues with this you need to open an issue here:
 https://github.com/FaserF/ha-NintendoSwitchCFW
 -------------------------------------------------------------------
 """
 
-DEFAULT_PORT = 1337
+DEFAULT_PORT = 8275
+CONF_PORT = "port"
 
 # Configuration
 CONF_API_TOKEN = "api_token"
 CONF_UPDATE_REPO = "update_repo"
 
 # Attributes from Sysmodule
-ATTR_FIRMWARE_VERSION = "0.2.2-dev"
+ATTR_FIRMWARE_VERSION = "0.2.2"
 ATTR_BATTERY_LEVEL = "battery_level"
 ATTR_CHARGING = "charging"
 ATTR_CURRENT_GAME = "current_game"
@@ -44,12 +45,12 @@ ATTR_LOGS = "logs"
 ATTR_DOCK_STATUS = "dock_status"
 
 # Attributes for HA
-ATTR_LATEST_VERSION = "0.2.2-dev"
+ATTR_LATEST_VERSION = "0.2.2"
 ATTR_TITLE_ID = "current_title_id"
-ATTR_APP_VERSION = "0.2.2-dev"
+ATTR_APP_VERSION = "0.2.2"
 
 # Minimum required version of the Homebrew App/Sysmodule
-MIN_APP_VERSION = "0.2.2-dev"
+MIN_APP_VERSION = "0.2.2"
 
 FIRMWARE_UPDATE_URL = "https://api.github.com/repos/{repository}/releases/latest"
 GITHUB_RELEASE_URL = "https://github.com/FaserF/ha-NintendoSwitchCFW/releases/latest"

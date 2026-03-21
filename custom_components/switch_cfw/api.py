@@ -21,13 +21,15 @@ class SwitchAPI:
         self,
         host: str,
         api_token: str,
+        port: int = DEFAULT_PORT,
         session: aiohttp.ClientSession | None = None,
     ) -> None:
         """Initialize the API client."""
         self._host = host
         self._api_token = api_token
+        self._port = port
         self._session = session
-        self._base_url = f"http://{host}:{DEFAULT_PORT}"
+        self._base_url = f"http://{host}:{port}"
         self._headers = {"X-API-Token": api_token}
 
     async def get_info(self) -> dict[str, Any]:

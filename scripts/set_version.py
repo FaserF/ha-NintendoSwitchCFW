@@ -3,93 +3,76 @@ import json
 import os
 import sys
 
-
 def update_files(new_version):
     print(f"Updating all project files to version {new_version}...")
 
-    # Update pyproject.toml
+    # 1. pyproject.toml
     if os.path.exists("pyproject.toml"):
-        with open("pyproject.toml") as f:
+        with open("pyproject.toml", "r", encoding="utf-8") as f:
             content = f.read()
-        content = re.sub(
-            r'version\s*=\s*"[^"]+"', f'version = "{new_version}"', content, count=1
-        )
-        with open("pyproject.toml", "w") as f:
+        content = re.sub(r'(version\s*=\s*")[^"]+(")', rf'\g<1>{new_version}\g<2>', content, count=1)
+        with open("pyproject.toml", "w", encoding="utf-8", newline="\n") as f:
             f.write(content)
         print("- Updated pyproject.toml")
 
-    # Update manifest.json
+    # 2. manifest.json
     manifest_path = "custom_components/switch_cfw/manifest.json"
     if os.path.exists(manifest_path):
-        with open(manifest_path) as f:
+        with open(manifest_path, "r", encoding="utf-8") as f:
             manifest = json.load(f)
         manifest["version"] = new_version
-        with open(manifest_path, "w") as f:
+        with open(manifest_path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(manifest, f, indent=2)
             f.write("\n")
         print("- Updated manifest.json")
 
-    # Update const.py
+    # 3. const.py
     const_path = "custom_components/switch_cfw/const.py"
     if os.path.exists(const_path):
-        with open(const_path) as f:
+        with open(const_path, "r", encoding="utf-8") as f:
             content = f.read()
-        # Update all typical version locations in const.py
-        content = re.sub(r'Version: \d+\.\d+\.\d+(-[a-z0-9.]+)?', f'Version: {new_version}', content)
-        content = re.sub(r'ATTR_FIRMWARE_VERSION = "[^"]+"', f'ATTR_FIRMWARE_VERSION = "{new_version}"', content)
-        content = re.sub(r'ATTR_LATEST_VERSION = "[^"]+"', f'ATTR_LATEST_VERSION = "{new_version}"', content)
-        content = re.sub(r'ATTR_APP_VERSION = "[^"]+"', f'ATTR_APP_VERSION = "{new_version}"', content)
-        content = re.sub(r'MIN_APP_VERSION = "[^"]+"', f'MIN_APP_VERSION = "{new_version}"', content)
-        # Update VERSION constant if it exists
-        content = re.sub(
-            r'VERSION\s*=\s*"[^"]+"', f'VERSION = "{new_version}"', content
-        )
-        with open(const_path, "w") as f:
+        content = re.sub(r'(Version: )\d+\.\d+\.\d+(-[a-z0-9.]+)?', rf'\g<1>{new_version}', content)
+        content = re.sub(r'(ATTR_FIRMWARE_VERSION\s*=\s*")[^"]+(")', rf'\g<1>{new_version}\g<2>', content)
+        content = re.sub(r'(ATTR_LATEST_VERSION\s*=\s*")[^"]+(")', rf'\g<1>{new_version}\g<2>', content)
+        content = re.sub(r'(ATTR_APP_VERSION\s*=\s*")[^"]+(")', rf'\g<1>{new_version}\g<2>', content)
+        content = re.sub(r'(MIN_APP_VERSION\s*=\s*")[^"]+(")', rf'\g<1>{new_version}\g<2>', content)
+        content = re.sub(r'(VERSION\s*=\s*")[^"]+(")', rf'\g<1>{new_version}\g<2>', content)
+        with open(const_path, "w", encoding="utf-8", newline="\n") as f:
             f.write(content)
         print("- Updated const.py")
 
-    # Update switch_sysmodule/homeassistant_sysmodule.json
-    sys_json_path = "switch_sysmodule/homeassistant_sysmodule.json"
-    if os.path.exists(sys_json_path):
-        with open(sys_json_path) as f:
-            sys_json = json.load(f)
-        sys_json["version"] = new_version
-        with open(sys_json_path, "w") as f:
-            json.dump(sys_json, f, indent=4)
-            f.write("\n")
-        print("- Updated switch_sysmodule/homeassistant_sysmodule.json")
-
-    # Update switch_sysmodule Makefile
-    sys_makefile = "switch_sysmodule/Makefile"
-    if os.path.exists(sys_makefile):
-        with open(sys_makefile) as f:
+    # 4. switch_sysmodule/main.cpp
+    sys_main = "switch_sysmodule/main.cpp"
+    if os.path.exists(sys_main):
+        with open(sys_main, "r", encoding="utf-8") as f:
             content = f.read()
-        content = re.sub(
-            r"APP_VERSION\s*?[:?]?=\s*?.*",
-            f"APP_VERSION\t:=\t{new_version}",
-            content,
-            count=1,
-        )
-        with open(sys_makefile, "w") as f:
+        content = re.sub(r'(#define\s+APP_VERSION\s+")[^"]+(")', rf'\g<1>{new_version}\g<2>', content)
+        with open(sys_main, "w", encoding="utf-8", newline="\n") as f:
             f.write(content)
-        print("- Updated switch_sysmodule/Makefile")
+        print("- Updated switch_sysmodule/main.cpp")
 
-    # Update switch_app Makefile
-    app_makefile_path = "switch_app/Makefile"
-    if os.path.exists(app_makefile_path):
-        with open(app_makefile_path) as f:
+    # 5. switch_app/main.cpp
+    app_main = "switch_app/main.cpp"
+    if os.path.exists(app_main):
+        with open(app_main, "r", encoding="utf-8") as f:
             content = f.read()
-        content = re.sub(
-            r"VERSION\s*?[:?]?=\s*?.*", f"VERSION\t?=\t{new_version}", content, count=1
-        )
-        with open(app_makefile_path, "w") as f:
+        content = re.sub(r'(#define\s+APP_VERSION\s+")[^"]+(")', rf'\g<1>{new_version}\g<2>', content)
+        with open(app_main, "w", encoding="utf-8", newline="\n") as f:
             f.write(content)
-        print("- Updated switch_app/Makefile")
+        print("- Updated switch_app/main.cpp")
 
+    # 6. build_switch.ps1
+    ps1_path = "build_switch.ps1"
+    if os.path.exists(ps1_path):
+        with open(ps1_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        content = re.sub(r'(\[string\]\$Version\s*=\s*")[^"]+(")', rf'\g<1>{new_version}\g<2>', content)
+        with open(ps1_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(content)
+        print("- Updated build_switch.ps1")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python scripts/set_version.py <version>")
         sys.exit(1)
-
     update_files(sys.argv[1])

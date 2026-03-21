@@ -1,7 +1,7 @@
 # Build Script for Nintendo Switch Components
 param(
     [Parameter(Mandatory=$false)]
-    [string]$Version = "0.2.1",
+    [string]$Version = "0.2.2",
 
     [Parameter(Mandatory=$false)]
     [switch]$Deploy,  # Add -Deploy switch for optional MTP copy

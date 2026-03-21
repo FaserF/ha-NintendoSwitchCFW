@@ -20,7 +20,7 @@ void ConfigManager::init() {
     getInstance().load();
 }
 
-ConfigManager::ConfigManager() : m_port(1337), m_lastUpdateCheck(0) {
+ConfigManager::ConfigManager() : m_port(8275), m_lastUpdateCheck(0) {
     memset(m_apiToken, 0, sizeof(m_apiToken));
 }
 
@@ -69,8 +69,15 @@ bool ConfigManager::load() {
 }
 
 bool ConfigManager::save() {
-    mkdir("sdmc:/config", 0777);
-    mkdir("sdmc:/config/HomeAssistantSwitch", 0777);
+    char temp[256];
+    snprintf(temp, sizeof(temp), "%s", m_configPath);
+    char* p = strchr(temp + 7, '/'); // Skip sdmc:/
+    while (p) {
+        *p = '\0';
+        mkdir(temp, 0777);
+        *p = '/';
+        p = strchr(p + 1, '/');
+    }
 
     FILE* f = fopen(m_configPath, "w");
     if (!f) return false;
@@ -93,8 +100,8 @@ long ConfigManager::getLastUpdateCheck() { return m_lastUpdateCheck; }
 void ConfigManager::setLastUpdateCheck(long timestamp) { m_lastUpdateCheck = timestamp; }
 
 void ConfigManager::generateDefaultConfig() {
-    strncpy(m_apiToken, "Magic-Pixel-21", sizeof(m_apiToken) - 1);
-    m_port = 1337;
+    generatePassphrase(m_apiToken, sizeof(m_apiToken));
+    m_port = 8275;
 }
 
 void ConfigManager::generatePassphrase(char* out, size_t max_len) {

@@ -28,12 +28,16 @@
 
 using json = nlohmann::json;
 
+#ifndef APP_VERSION
+#define APP_VERSION "0.2.2"
+#endif
+
 extern "C" {
     u32 __check_mask_save;
     
     // Sysmodules must define their own heap
     void __libnx_initheap(void) {
-        static char inner_heap[0x800000]; // Increased to 8MB for screenshot buffer
+        static char inner_heap[0x200000]; // 2MB is plenty for basic JSON/Curl
         extern char* fake_heap_start;
         extern char* fake_heap_end;
         fake_heap_start = inner_heap;
@@ -567,21 +571,30 @@ int main(int, char **) {
     LOG_I("Home Assistant Sysmodule started (v" APP_VERSION ")");
     
     // Heartbeat log for physical Switch troubleshooting
-    FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
-    if (f) {
-        time_t t = time(NULL);
-        fprintf(f, "[%ld] Sysmodule Main Started\n", t);
-        fclose(f);
-    }
-
     ConfigManager::getInstance().load();
+
+    // Heartbeat log for physical Switch troubleshooting
+    ConfigManager::getInstance().load();
+    mkdir("sdmc:/config", 0777);
+    mkdir("sdmc:/config/HomeAssistantSwitch", 0777);
+
+    const char* log_path = "sdmc:/config/HomeAssistantSwitch/ha_sys_boot.log";
+    FILE *fb = fopen(log_path, "a");
+    
+    if (fb) {
+        time_t t = time(NULL);
+        fprintf(fb, "[%ld] Sysmodule Main Started (v%s)\n", t, APP_VERSION);
+        fprintf(fb, "[%ld] Port: %d\n", t, ConfigManager::getInstance().getPort());
+        fprintf(fb, "[%ld] API Token: %s\n", t, ConfigManager::getInstance().getApiToken()[0] ? "SET" : "MISSING");
+        fclose(fb);
+    }
 
     const SocketInitConfig* default_cfg = socketGetDefaultInitConfig();
     SocketInitConfig sock_cfg = *default_cfg;
     sock_cfg.bsd_service_type = BsdServiceType_System;
 
     if (R_FAILED(socketInitialize(&sock_cfg))) {
-        FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+        FILE *f = fopen("sdmc:/config/HomeAssistantSwitch/ha_sysmodule_boot.log", "a");
         if (f) { fprintf(f, "[ERR] socketInitialize failed\n"); fclose(f); }
         LOG_E("Failed to initialize sockets");
         return 1;
@@ -604,20 +617,20 @@ int main(int, char **) {
     address.sin_port = htons(ConfigManager::getInstance().getPort());
     address.sin_addr.s_addr = INADDR_ANY;
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+        FILE *f = fopen("sdmc:/config/HomeAssistantSwitch/ha_sysmodule_boot.log", "a");
         if (f) { fprintf(f, "[ERR] bind failed: %d\n", errno); fclose(f); }
         LOG_E("Failed to bind socket");
         return 1;
     }
     if (listen(server_fd, 5) < 0) {
-        FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+        FILE *f = fopen("sdmc:/config/HomeAssistantSwitch/ha_sysmodule_boot.log", "a");
         if (f) { fprintf(f, "[ERR] listen failed\n"); fclose(f); }
         LOG_E("Failed to listen on socket");
         return 1;
     }
     
     {
-        FILE *f = fopen("sdmc:/ha_sysmodule_boot.log", "a");
+        FILE *f = fopen("sdmc:/config/HomeAssistantSwitch/ha_sysmodule_boot.log", "a");
         if (f) { fprintf(f, "[OK] Server listening on port %d\n", ConfigManager::getInstance().getPort()); fclose(f); }
     }
 

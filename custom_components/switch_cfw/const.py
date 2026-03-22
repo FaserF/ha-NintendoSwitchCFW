@@ -23,7 +23,7 @@ CONF_API_TOKEN = "api_token"
 CONF_UPDATE_REPO = "update_repo"
 
 # Attributes from Sysmodule
-ATTR_FIRMWARE_VERSION = "0.2.2"
+ATTR_FIRMWARE_VERSION = "firmware_version"
 ATTR_BATTERY_LEVEL = "battery_level"
 ATTR_CHARGING = "charging"
 ATTR_CURRENT_GAME = "current_game"
@@ -45,9 +45,9 @@ ATTR_LOGS = "logs"
 ATTR_DOCK_STATUS = "dock_status"
 
 # Attributes for HA
-ATTR_LATEST_VERSION = "0.2.2"
+ATTR_LATEST_VERSION = "latest_version"
 ATTR_TITLE_ID = "current_title_id"
-ATTR_APP_VERSION = "0.2.2"
+ATTR_APP_VERSION = "app_version"
 
 # Minimum required version of the Homebrew App/Sysmodule
 MIN_APP_VERSION = "0.2.2"

@@ -99,11 +99,27 @@ def update_files(new_version):
         with open(const_path) as f:
             content = f.read()
         # Update all typical version locations in const.py
-        content = re.sub(r'Version: \d+\.\d+\.\d+(-[a-z0-9.]+)?', f'Version: {new_version}', content)
-        content = re.sub(r'ATTR_FIRMWARE_VERSION = "[^"]+"', f'ATTR_FIRMWARE_VERSION = "{new_version}"', content)
-        content = re.sub(r'ATTR_LATEST_VERSION = "[^"]+"', f'ATTR_LATEST_VERSION = "{new_version}"', content)
-        content = re.sub(r'ATTR_APP_VERSION = "[^"]+"', f'ATTR_APP_VERSION = "{new_version}"', content)
-        content = re.sub(r'MIN_APP_VERSION = "[^"]+"', f'MIN_APP_VERSION = "{new_version}"', content)
+        content = re.sub(
+            r"Version: \d+\.\d+\.\d+(-[a-z0-9.]+)?", f"Version: {new_version}", content
+        )
+        content = re.sub(
+            r'ATTR_FIRMWARE_VERSION = "[^"]+"',
+            f'ATTR_FIRMWARE_VERSION = "{new_version}"',
+            content,
+        )
+        content = re.sub(
+            r'ATTR_LATEST_VERSION = "[^"]+"',
+            f'ATTR_LATEST_VERSION = "{new_version}"',
+            content,
+        )
+        content = re.sub(
+            r'ATTR_APP_VERSION = "[^"]+"',
+            f'ATTR_APP_VERSION = "{new_version}"',
+            content,
+        )
+        content = re.sub(
+            r'MIN_APP_VERSION = "[^"]+"', f'MIN_APP_VERSION = "{new_version}"', content
+        )
         with open(const_path, "w") as f:
             f.write(content)
 

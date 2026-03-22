@@ -7,6 +7,8 @@ from homeassistant.const import CONF_HOST
 from custom_components.switch_cfw.config_flow import ConfigFlow
 from custom_components.switch_cfw.const import (
     CONF_API_TOKEN,
+    CONF_PORT,
+    DEFAULT_PORT,
     ATTR_APP_VERSION,
     MIN_APP_VERSION,
 )
@@ -33,7 +35,11 @@ async def test_config_flow_manual_success():
         )
         assert result["type"] == "create_entry"
         assert result["title"] == "Nintendo Switch"
-        assert result["data"] == {CONF_HOST: "1.2.3.4", CONF_API_TOKEN: "test-token"}
+        assert result["data"] == {
+            CONF_HOST: "1.2.3.4",
+            CONF_API_TOKEN: "test-token",
+            CONF_PORT: DEFAULT_PORT,
+        }
 
 
 @pytest.mark.asyncio
@@ -106,6 +112,7 @@ async def test_config_flow_discovery_success():
             assert result["data"] == {
                 CONF_HOST: "1.2.3.4",
                 CONF_API_TOKEN: "test-token",
+                CONF_PORT: DEFAULT_PORT,
             }
 
 

@@ -24,12 +24,14 @@ class SwitchDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
         from .const import CONF_API_TOKEN, CONF_PORT, DEFAULT_PORT
-        
+
         self.host = entry.data[CONF_HOST]
         self.api_token = entry.data[CONF_API_TOKEN]
         self.port = entry.data.get(CONF_PORT, DEFAULT_PORT)
         self.entry = entry
-        self.api = SwitchAPI(self.host, self.api_token, self.port, async_get_clientsession(hass))
+        self.api = SwitchAPI(
+            self.host, self.api_token, self.port, async_get_clientsession(hass)
+        )
         self.sleep_mode = False
         self._normal_interval = timedelta(seconds=30)
         self._sleep_interval = timedelta(minutes=5)

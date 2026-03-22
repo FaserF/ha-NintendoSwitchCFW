@@ -54,7 +54,9 @@ class SwitchAPI:
 
     async def launch_title(self, title_id: str) -> bool:
         """Launch a title by ID."""
-        return await self._post("/command", {"action": "launch_app", "title_id": title_id})
+        return await self._post(
+            "/command", {"action": "launch_app", "title_id": title_id}
+        )
 
     async def update_app(self) -> bool:
         """Trigger self-update of the Homebrew app."""
@@ -149,7 +151,7 @@ class SwitchAPI:
                             if isinstance(res_data, dict):
                                 return res_data.get("status") == "ok"
                         except Exception:
-                            return True # Assume success if 200 and no JSON
+                            return True  # Assume success if 200 and no JSON
                     return response.status == 200
         except aiohttp.ClientResponseError as err:
             LOGGER.error(

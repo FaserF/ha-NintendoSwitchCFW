@@ -170,7 +170,9 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
             port = user_input.get(CONF_PORT, DEFAULT_PORT)
             try:
                 # Test connection with the provided token and port
-                api = SwitchAPI(self._host, token, port, async_get_clientsession(self.hass))
+                api = SwitchAPI(
+                    self._host, token, port, async_get_clientsession(self.hass)
+                )
                 info = await api.get_info()
                 if not isinstance(info, dict):
                     errors["base"] = "cannot_connect"
@@ -218,7 +220,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+            except aiohttp.ClientError, asyncio.TimeoutError:
                 errors["base"] = "cannot_connect"
                 LOGGER.error("Manual connection to %s timed out or failed", self._host)
             except Exception as err:
@@ -273,7 +275,9 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                 # Test connection with the provided token
                 if self._host is None:
                     return self.async_abort(reason="cannot_connect")
-                api = SwitchAPI(self._host, token, port, async_get_clientsession(self.hass))
+                api = SwitchAPI(
+                    self._host, token, port, async_get_clientsession(self.hass)
+                )
                 info = await api.get_info()
 
                 # Check version
@@ -309,7 +313,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+            except aiohttp.ClientError, asyncio.TimeoutError:
                 errors["base"] = "cannot_connect"
                 LOGGER.error(
                     "Discovery confirmation for %s timed out or failed", self._host
@@ -324,10 +328,12 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
 
         return self.async_show_form(
             step_id="discovery_confirm",
-            data_schema=vol.Schema({
-                vol.Required(CONF_API_TOKEN): str,
-                vol.Required(CONF_PORT, default=DEFAULT_PORT): cv.port,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_API_TOKEN): str,
+                    vol.Required(CONF_PORT, default=DEFAULT_PORT): cv.port,
+                }
+            ),
             errors=errors,
         )
 

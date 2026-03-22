@@ -1,4 +1,5 @@
 """Camera platform for Nintendo Switch CFW."""
+
 from __future__ import annotations
 
 from homeassistant.components.camera import Camera

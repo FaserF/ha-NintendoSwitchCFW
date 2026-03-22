@@ -137,6 +137,21 @@ def test_switch_hardcoded_strings():
                                             "Downloading sysmodule v",
                                             "Checking for updates",
                                             "Install Update",
+                                            "[DEBUG]",
+                                            "[INFO]",
+                                            "[WARN]",
+                                            "[SYSTEM]",
+                                            "[BOOT]",
+                                            "[ERROR]",
+                                            "[SUCCESS]",
+                                            "[OK]",
+                                            "[ERR]",
+                                            "[",
+                                            "|",
+                                            "Failed to init",
+                                            "socketInitialize",
+                                            "bind failed",
+                                            "listen failed",
                                         )
                                     )
                                     and not any(

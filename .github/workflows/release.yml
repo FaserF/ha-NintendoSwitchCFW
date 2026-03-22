@@ -159,6 +159,35 @@ jobs:
           if not has_content: changelog += "No significant changes in this release."
           with open("CHANGELOG_BODY.md", "w", encoding="utf-8") as f: f.write(changelog)
 
+      - name: Validate NRO Icon
+        run: |
+          ICON_PNG="switch_app/icon.png"
+          ICON_JPG="switch_app/icon.jpg"
+          if [ -f "$ICON_PNG" ]; then
+            HEADER=$(xxd -p -l 4 "$ICON_PNG")
+            if [ "$HEADER" = "89504e47" ]; then
+              echo "::warning::icon.png is a real PNG! NRO requires JPEG. Auto-converting..."
+              pip install Pillow
+              python -c "from PIL import Image; Image.open('$ICON_PNG').convert('RGB').resize((256,256)).save('$ICON_JPG','JPEG',quality=95)"
+              echo "✅ Converted to icon.jpg (256x256 JPEG)"
+            fi
+          fi
+          if [ ! -f "$ICON_JPG" ]; then
+            echo "::error::No icon.jpg found in switch_app/. NRO will have no icon!"
+            exit 1
+          fi
+          JHEADER=$(xxd -p -l 2 "$ICON_JPG")
+          if [ "$JHEADER" != "ffd8" ]; then
+            echo "::error::icon.jpg is not a valid JPEG!"
+            exit 1
+          fi
+          echo "✅ Icon validated: icon.jpg is a valid JPEG"
+
+      - name: Create boot2.flag
+        run: |
+          mkdir -p switch_sysmodule/flags
+          touch switch_sysmodule/flags/boot2.flag
+
       - name: Build Nintendo Switch Components
         uses: docker://devkitpro/devkita64:latest
         with:
@@ -192,6 +221,7 @@ jobs:
             switch_cfw.zip
             switch_sysmodule/main
             switch_sysmodule/main.npdm
+            switch_sysmodule/flags/boot2.flag
             switch_app/homeassistant.nro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

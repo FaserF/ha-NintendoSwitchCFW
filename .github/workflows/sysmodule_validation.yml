@@ -1,0 +1,28 @@
+name: Validate Sysmodule
+on:
+  push:
+    paths:
+      - 'switch_sysmodule/**'
+      - '.github/workflows/sysmodule_validation.yml'
+  pull_request:
+    paths:
+      - 'switch_sysmodule/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate JSON Structure and Syscalls
+        run: python3 scripts/validate_sysmodule.py switch_sysmodule/main.json
+        
+      - name: Verify Sysmodule Compilation
+        uses: docker://devkitpro/devkita64:latest
+        with:
+          args: /bin/bash -c "export PATH=$PATH:/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin && cd switch_sysmodule && make"
+
+      - name: Verify App Compilation
+        uses: docker://devkitpro/devkita64:latest
+        with:
+          args: /bin/bash -c "export PATH=$PATH:/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin && cd switch_app && make"

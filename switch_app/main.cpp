@@ -25,6 +25,16 @@ using json = nlohmann::json;
 #define REPO_NAME "FaserF/ha-NintendoSwitchCFW"
 #define REPO_URL "https://github.com/" REPO_NAME
 
+struct ReleaseInfo {
+    std::string tag;
+    std::string date;
+    std::string url_main;
+    std::string url_npdm;
+    std::string url_flag;
+    std::string url_nro;
+    bool valid = false;
+};
+
 struct MemoryStruct {
     char *memory;
     size_t size;
@@ -48,6 +58,7 @@ static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 }
 
 // Global state
+ReleaseInfo g_latest_release;
 std::string latest_date = "";
 bool g_dev_mode = false;
 bool g_is_applet_mode = false;
@@ -73,12 +84,12 @@ void add_app_log(const std::string& msg) {
     }
 }
 
-std::string get_latest_version(std::string& date) {
+bool fill_release_info(ReleaseInfo& info) {
     CURL *curl_handle;
     CURLcode res;
     struct MemoryStruct chunk = {(char*)malloc(1), 0};
 
-    auto fetch = [&](const char* url) -> bool {
+    auto fetch = [&](const char* url, bool silent = false) -> bool {
         chunk.size = 0;
         curl_handle = curl_easy_init();
         curl_easy_setopt(curl_handle, CURLOPT_URL, url);
@@ -92,38 +103,69 @@ std::string get_latest_version(std::string& date) {
         long response_code = 0;
         curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
         curl_easy_cleanup(curl_handle);
+        
         if (res != CURLE_OK) {
-            char fail[128]; snprintf(fail, sizeof(fail), "\x1b[31m[ERROR] Curl: %s\x1b[0m", curl_easy_strerror(res));
-            add_app_log(fail);
-        } else if (response_code != 200) {
-            char fail[128]; snprintf(fail, sizeof(fail), "\x1b[31m[ERROR] HTTP %ld (Rate limit?)\x1b[0m", response_code);
-            add_app_log(fail);
+            if (!silent) {
+                char fail[128]; snprintf(fail, sizeof(fail), "\x1b[31m[ERROR] Curl: %s\x1b[0m", curl_easy_strerror(res));
+                add_app_log(fail);
+            }
+            return false;
         }
-        return (res == CURLE_OK && response_code == 200);
+        
+        if (response_code != 200) {
+            if (!silent) {
+                char fail[128]; snprintf(fail, sizeof(fail), "\x1b[31m[ERROR] HTTP %ld (Rate limit?)\x1b[0m", response_code);
+                add_app_log(fail);
+            }
+            return false;
+        }
+        return true;
     };
 
-    if (!fetch("https://api.github.com/repos/" REPO_NAME "/releases/latest")) {
-        if (!fetch("https://api.github.com/repos/" REPO_NAME "/releases")) {
-            add_app_log("\x1b[31m[ERROR] Update API unreachable\x1b[0m");
-            free(chunk.memory); return "error";
+    // Try /latest (stable), if 404 try /releases (can be pre-releases)
+    if (!fetch("https://api.github.com/repos/" REPO_NAME "/releases/latest", true)) {
+        if (!fetch("https://api.github.com/repos/" REPO_NAME "/releases", false)) {
+            add_app_log("\x1b[31m[ERROR] Release API unreachable\x1b[0m");
+            free(chunk.memory); return false;
         }
     }
 
     json j = json::parse(chunk.memory, nullptr, false);
     free(chunk.memory);
-    if (j.is_discarded()) return "error";
+    if (j.is_discarded()) return false;
 
     json release = j.is_array() && !j.empty() ? j[0] : j;
     if (release.contains("tag_name")) {
-        std::string version = release.value("tag_name", "");
-        date = release.value("published_at", "");
-        if (!date.empty() && date.length() > 10) date = date.substr(0, 10); 
-        if (!version.empty() && version[0] == 'v') version = version.substr(1);
-        return version;
+        info.tag = release.value("tag_name", "");
+        info.date = release.value("published_at", "");
+        if (!info.date.empty() && info.date.length() > 10) info.date = info.date.substr(0, 10); 
+
+        if (release.contains("assets") && release["assets"].is_array()) {
+            for (auto& asset : release["assets"]) {
+                std::string name = asset.value("name", "");
+                std::string url = asset.value("browser_download_url", "");
+                if (name == "main") info.url_main = url;
+                else if (name == "main.npdm") info.url_npdm = url;
+                else if (name == "boot2.flag") info.url_flag = url;
+                else if (name == "homeassistant.nro") info.url_nro = url;
+            }
+        }
+        info.valid = true;
+        return true;
     }
     
-    add_app_log("\x1b[31m[ERROR] No releases found\x1b[0m");
-    return "none";
+    add_app_log("\x1b[31m[ERROR] No release tag in JSON\x1b[0m");
+    return false;
+}
+
+std::string get_latest_version(std::string& date) {
+    if (fill_release_info(g_latest_release)) {
+        date = g_latest_release.date;
+        std::string v = g_latest_release.tag;
+        if (!v.empty() && v[0] == 'v') v = v.substr(1);
+        return v;
+    }
+    return "error";
 }
 
 bool download_file(const std::string& url, const std::string& path) {
@@ -176,16 +218,37 @@ void check_and_fix_sysmodule(bool manual = false) {
         if (!manual) add_app_log("\x1b[33m[WARN] Sysmodule missing or invalid size! Recovering...\x1b[0m");
         else add_app_log("\x1b[35m[INFO] Forced re-downloading fresh sysmodule files...\x1b[0m");
         
-        std::string date;
-        std::string version = get_latest_version(date);
-        if (version != "error" && version != "none" && version != "") {
+        if (!g_latest_release.valid) {
+            std::string d; get_latest_version(d);
+        }
+
+        if (g_latest_release.valid) {
             make_dirs("sdmc:/atmosphere/contents/010000000000CAFE/exefs");
-            std::string url_main = std::string(REPO_URL) + "/releases/download/v" + version + "/main";
-            std::string url_npdm = std::string(REPO_URL) + "/releases/download/v" + version + "/main.npdm";
+            make_dirs("sdmc:/atmosphere/contents/010000000000CAFE/flags");
+            
             add_app_log("[INFO] Requesting files from GitHub...");
-            bool ok1 = download_file(url_main, main_path);
-            bool ok2 = download_file(url_npdm, npdm_path);
+            bool ok1 = false;
+            if (!g_latest_release.url_main.empty()) {
+                ok1 = download_file(g_latest_release.url_main, main_path);
+            } else add_app_log("\x1b[31m[ERROR] 'main' asset missing in release\x1b[0m");
+
+            bool ok2 = false;
+            if (!g_latest_release.url_npdm.empty()) {
+                ok2 = download_file(g_latest_release.url_npdm, npdm_path);
+            } else add_app_log("\x1b[31m[ERROR] 'main.npdm' asset missing in release\x1b[0m");
+            
             if (ok1 && ok2) {
+                // Try to download the official boot2.flag from release, fallback to local empty file
+                bool flag_ok = false;
+                if (!g_latest_release.url_flag.empty()) {
+                    flag_ok = download_file(g_latest_release.url_flag, "sdmc:/atmosphere/contents/010000000000CAFE/flags/boot2.flag");
+                }
+                
+                if (!flag_ok) {
+                    FILE* f = fopen("sdmc:/atmosphere/contents/010000000000CAFE/flags/boot2.flag", "w");
+                    if (f) fclose(f);
+                }
+                
                 add_app_log("\x1b[32m[SUCCESS] Sysmodule restored. REBOOT REQUIRED.\x1b[0m");
                 add_app_log("\x1b[32m[SYSTEM] Please restart your Switch now!\x1b[0m");
             } else add_app_log("\x1b[31m[ERROR] Download failed. Check internet.\x1b[0m");
@@ -198,9 +261,26 @@ void check_and_fix_sysmodule(bool manual = false) {
 }
 
 bool download_update(const std::string& version) {
-    bool nro_ok = download_file(REPO_URL "/releases/download/v" + version + "/" + NRO_FILENAME, "sdmc:/switch/" NRO_FILENAME);
-    bool nso_ok = download_file(REPO_URL "/releases/download/v" + version + "/" + NSO_FILENAME, "sdmc:/atmosphere/contents/010000000000CAFE/exefs/main");
-    return nro_ok && nso_ok;
+    if (!g_latest_release.valid || g_latest_release.url_nro.empty() || g_latest_release.url_main.empty()) {
+        add_app_log("\x1b[31m[ERROR] Assets missing for update\x1b[0m");
+        return false;
+    }
+    
+    add_app_log("[INFO] Downloading update assets...");
+    bool nro_ok = download_file(g_latest_release.url_nro, "sdmc:/switch/homeassistant.nro");
+    bool nso_ok = download_file(g_latest_release.url_main, "sdmc:/atmosphere/contents/010000000000CAFE/exefs/main");
+    
+    bool npdm_ok = true;
+    if (!g_latest_release.url_npdm.empty()) {
+        npdm_ok = download_file(g_latest_release.url_npdm, "sdmc:/atmosphere/contents/010000000000CAFE/exefs/main.npdm");
+    }
+    
+    // Also update flag if present
+    if (!g_latest_release.url_flag.empty()) {
+        download_file(g_latest_release.url_flag, "sdmc:/atmosphere/contents/010000000000CAFE/flags/boot2.flag");
+    }
+
+    return nro_ok && nso_ok && npdm_ok;
 }
 
 std::string get_sysmodule_ip() {

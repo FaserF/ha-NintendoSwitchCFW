@@ -31,7 +31,7 @@ all: $(TARGET).nro
 
 $(TARGET).nro: $(TARGET).elf
 	$(DEVKITPRO)/tools/bin/nacptool --create "HomeAssistant Switch Integration" "FaserF" "$(VERSION)" $(TARGET).nacp
-	$(DEVKITPRO)/tools/bin/elf2nro $< $@ --icon=icon.png --nacp=$(TARGET).nacp
+	$(DEVKITPRO)/tools/bin/elf2nro $< $@ --icon=icon.jpg --nacp=$(TARGET).nacp
 	@echo built ... $@
 
 $(TARGET).elf: main.cpp ../switch_sysmodule/ConfigManager.cpp

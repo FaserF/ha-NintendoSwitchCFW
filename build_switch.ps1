@@ -37,6 +37,35 @@ New-Item -ItemType Directory -Path $OutPath | Out-Null
 # Set version across all files
 py scripts/set_version.py $Version
 
+# Validate NRO icon (must be JPEG for Switch homebrew menu)
+Write-Host "[CHECK] Validating NRO icon format..." -ForegroundColor Cyan
+$IconPath = Join-Path $RepoPath "switch_app/icon.jpg"
+$IconPng  = Join-Path $RepoPath "switch_app/icon.png"
+
+if (Test-Path $IconPng) {
+    # Check if icon.png is actually a PNG (not a misnamed JPEG)
+    $header = [System.IO.File]::ReadAllBytes($IconPng)[0..3]
+    $isPng = ($header[0] -eq 0x89 -and $header[1] -eq 0x50 -and $header[2] -eq 0x4E -and $header[3] -eq 0x47)
+    if ($isPng) {
+        Write-Host "[WARN] icon.png is a real PNG! NRO requires JPEG. Auto-converting..." -ForegroundColor Yellow
+        py -c "from PIL import Image; Image.open('switch_app/icon.png').convert('RGB').resize((256,256)).save('switch_app/icon.jpg','JPEG',quality=95)"
+        Write-Host "[OK] Converted to icon.jpg (256x256 JPEG)" -ForegroundColor Green
+    }
+}
+
+if (-not (Test-Path $IconPath)) {
+    Write-Error "[ERROR] No icon.jpg found in switch_app/. NRO will have no icon!"
+    exit 1
+}
+
+# Verify icon.jpg is actually JPEG
+$jheader = [System.IO.File]::ReadAllBytes($IconPath)[0..1]
+if ($jheader[0] -ne 0xFF -or $jheader[1] -ne 0xD8) {
+    Write-Error "[ERROR] icon.jpg is not a valid JPEG file! Please provide a 256x256 JPEG."
+    exit 1
+}
+Write-Host "[OK] Icon validated: icon.jpg is a valid JPEG" -ForegroundColor Green
+
 Write-Host "[BUILD] Building Nintendo Switch Homebrew v$Version..." -ForegroundColor Cyan
 
 # Run Docker build
@@ -60,6 +89,11 @@ if (Test-Path $NSO) {
     Copy-Item $NSO -Destination (Join-Path $OutPath "main") -Force
     if (Test-Path $NPDM) { Copy-Item $NPDM -Destination $OutPath -Force }
     if (Test-Path $NRO) { Copy-Item $NRO -Destination $OutPath -Force }
+    
+    # Create boot2.flag for Atmosphere
+    $FlagsPath = Join-Path $OutPath "flags"
+    New-Item -ItemType Directory -Path $FlagsPath -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $FlagsPath "boot2.flag") -Force | Out-Null
 } else {
     Write-Error "[ERROR] Build failed - Sysmodule NSO not found at $NSO"
     exit 1
@@ -91,11 +125,18 @@ if ($Deploy) {
             if ($null -eq $exefs_item) { $ha_sys_item.GetFolder.NewFolder("exefs"); Start-Sleep -Seconds 1; $exefs_item = $ha_sys_item.GetFolder.Items() | Where-Object { $_.Name -eq "exefs" } }
             $exefs = $exefs_item.GetFolder
 
+            $flags_item = $ha_sys_item.GetFolder.Items() | Where-Object { $_.Name -eq "flags" }
+            if ($null -eq $flags_item) { $ha_sys_item.GetFolder.NewFolder("flags"); Start-Sleep -Seconds 1; $flags_item = $ha_sys_item.GetFolder.Items() | Where-Object { $_.Name -eq "flags" } }
+            $flags = $flags_item.GetFolder
+
             # Copy files
             $src_folder = $shell.NameSpace($OutPath)
             Write-Host "[DEPLOY] Copying main and main.npdm..."
             $exefs.CopyHere($src_folder.ParseName("main"), 16)
             $exefs.CopyHere($src_folder.ParseName("main.npdm"), 16)
+            
+            Write-Host "[DEPLOY] Copying boot2.flag..."
+            $flags.CopyHere((Join-Path $src_folder.Self.Path "flags\boot2.flag"), 16)
             
             # Copy NRO
             $switch_dir = ($sd_folder.Items() | Where-Object { $_.Name -eq "switch" }).GetFolder

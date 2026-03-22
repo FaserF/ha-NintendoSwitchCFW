@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <thread>
 #include <string>
+#include <atomic>
 #include "include/json.hpp"
 
 using json = nlohmann::json;
@@ -42,6 +43,27 @@ extern "C" {
         extern char* fake_heap_end;
         fake_heap_start = inner_heap;
         fake_heap_end   = inner_heap + sizeof(inner_heap);
+    }
+    
+    void __appInit(void) {
+        Result rc = smInitialize();
+        if (R_FAILED(rc)) fatalThrow(rc);
+        
+        rc = setsysInitialize();
+        if (R_SUCCEEDED(rc)) {
+            SetSysFirmwareVersion fw;
+            rc = setsysGetFirmwareVersion(&fw);
+            if (R_SUCCEEDED(rc)) {
+                hosversionSet(MAKEHOSVERSION(fw.major, fw.minor, fw.micro));
+            }
+            setsysExit();
+        }
+    }
+    
+    void __appExit(void) {
+        fsdevUnmountAll();
+        fsExit();
+        smExit();
     }
 }
 
@@ -287,6 +309,13 @@ void handle_client(int client_sock) {
     }
 
     if (strstr(buffer, "GET /screenshot")) {
+        extern bool g_capssc_ready;
+        if (!g_capssc_ready) {
+            const char *resp = "HTTP/1.1 503 Service Unavailable\r\n\r\n{\"error\": \"Screenshots disabled (capssc failed)\"}";
+            write(client_sock, resp, strlen(resp));
+            close(client_sock);
+            return;
+        }
         u8* screen_buf = (u8*)malloc(1280 * 720 * 4);
         if (screen_buf) {
             if (R_SUCCEEDED(capsscCaptureRawImageWithTimeout(screen_buf, 1280 * 720 * 4, (ViLayerStack)0, 1280, 720, 1, 0, 1000000000LL))) {
@@ -554,16 +583,45 @@ void handle_client(int client_sock) {
     close(client_sock);
 }
 
+bool g_capssc_ready = false;
+std::atomic<int> g_active_connections(0);
+
+void log_boot_status(const char* service, Result rc) {
+    FILE *fb = fopen("sdmc:/config/HomeAssistantSwitch/ha_sysmodule_boot.log", "a");
+    if (fb) {
+        if (R_SUCCEEDED(rc)) {
+            fprintf(fb, "[OK] %s initialized\n", service);
+        } else {
+            fprintf(fb, "[ERROR] %s failed: %08X\n", service, rc);
+        }
+        fflush(fb);
+        fclose(fb);
+    }
+}
+
 int main(int, char **) {
-    setsysInitialize();
-    psmInitialize();
-    tsInitialize();
-    nifmInitialize(NifmServiceType_User);
-    pdmqryInitialize();
-    nsInitialize();
-    appletInitialize();
-    hiddbgInitialize();
-    capsscInitialize();
+    // Wait for the OS and network to fully initialize before opening sockets (15s)
+    svcSleepThread(15000000000ULL);
+
+    Result rc = fsInitialize();
+    if (R_SUCCEEDED(rc)) {
+        fsdevMountSdmc();
+    }
+    
+    mkdir("sdmc:/config", 0777);
+    mkdir("sdmc:/config/HomeAssistantSwitch", 0777);
+
+    rc = setsysInitialize(); log_boot_status("setsys", rc);
+    rc = psmInitialize(); log_boot_status("psm", rc);
+    rc = tsInitialize(); log_boot_status("ts", rc);
+    rc = nifmInitialize(NifmServiceType_User); log_boot_status("nifm", rc);
+    rc = pdmqryInitialize(); log_boot_status("pdmqry", rc);
+    rc = nsInitialize(); log_boot_status("ns", rc);
+    rc = appletInitialize(); log_boot_status("applet", rc);
+    rc = hiddbgInitialize(); log_boot_status("hiddbg", rc);
+    
+    rc = capsscInitialize(); log_boot_status("capssc", rc);
+    if (R_SUCCEEDED(rc)) g_capssc_ready = true;
     
     std::thread(mdns_responder).detach();
     
@@ -573,13 +631,8 @@ int main(int, char **) {
     // Heartbeat log for physical Switch troubleshooting
     ConfigManager::getInstance().load();
 
-    // Heartbeat log for physical Switch troubleshooting
     ConfigManager::getInstance().load();
-    mkdir("sdmc:/config", 0777);
-    mkdir("sdmc:/config/HomeAssistantSwitch", 0777);
-
-    const char* log_path = "sdmc:/config/HomeAssistantSwitch/ha_sys_boot.log";
-    FILE *fb = fopen(log_path, "a");
+    FILE *fb = fopen("sdmc:/config/HomeAssistantSwitch/ha_sys_boot.log", "a");
     
     if (fb) {
         time_t t = time(NULL);
@@ -639,11 +692,21 @@ int main(int, char **) {
     
     while (true) {
         if ((client_sock = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) >= 0) {
-            std::thread(handle_client, client_sock).detach();
+            if (g_active_connections >= 5) {
+                const char* resp = "HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n{\"error\": \"Too many active connections\"}";
+                write(client_sock, resp, strlen(resp));
+                close(client_sock);
+                continue;
+            }
+            g_active_connections++;
+            std::thread([client_sock]() {
+                handle_client(client_sock);
+                g_active_connections--;
+            }).detach();
         }
     }
 
-    capsscExit();
+    if (g_capssc_ready) capsscExit();
     hiddbgExit();
     appletExit();
     nsExit();

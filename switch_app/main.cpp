@@ -246,7 +246,10 @@ void check_and_fix_sysmodule(bool manual = false) {
                 
                 if (!flag_ok) {
                     FILE* f = fopen("sdmc:/atmosphere/contents/010000000000CAFE/flags/boot2.flag", "w");
-                    if (f) fclose(f);
+                    if (f) {
+                        fprintf(f, "boot2\n");
+                        fclose(f);
+                    }
                 }
                 
                 add_app_log("\x1b[32m[SUCCESS] Sysmodule restored. REBOOT REQUIRED.\x1b[0m");
@@ -260,7 +263,7 @@ void check_and_fix_sysmodule(bool manual = false) {
     }
 }
 
-bool download_update(const std::string& version) {
+bool download_update(const std::string& /*version*/) {
     if (!g_latest_release.valid || g_latest_release.url_nro.empty() || g_latest_release.url_main.empty()) {
         add_app_log("\x1b[31m[ERROR] Assets missing for update\x1b[0m");
         return false;

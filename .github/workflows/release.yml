@@ -186,7 +186,7 @@ jobs:
       - name: Create boot2.flag
         run: |
           mkdir -p switch_sysmodule/flags
-          touch switch_sysmodule/flags/boot2.flag
+          echo "boot2" > switch_sysmodule/flags/boot2.flag
 
       - name: Build Nintendo Switch Components
         uses: docker://devkitpro/devkita64:latest

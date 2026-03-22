@@ -93,7 +93,7 @@ if (Test-Path $NSO) {
     # Create boot2.flag for Atmosphere
     $FlagsPath = Join-Path $OutPath "flags"
     New-Item -ItemType Directory -Path $FlagsPath -Force | Out-Null
-    New-Item -ItemType File -Path (Join-Path $FlagsPath "boot2.flag") -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $FlagsPath "boot2.flag") -Value "boot2" -Force | Out-Null
 } else {
     Write-Error "[ERROR] Build failed - Sysmodule NSO not found at $NSO"
     exit 1

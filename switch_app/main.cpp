@@ -19,7 +19,7 @@
 using json = nlohmann::json;
 
 #ifndef APP_VERSION
-#define APP_VERSION "0.2.2"
+#define APP_VERSION "0.2.4-dev"
 #endif
 
 #define REPO_NAME "FaserF/ha-NintendoSwitchCFW"

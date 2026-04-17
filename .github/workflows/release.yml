@@ -1,248 +1,66 @@
-name: Release
-
+﻿name: Release
 on:
   workflow_dispatch:
     inputs:
-      bump_type:
-        description: 'Version bump type'
+      release_type:
+        description: 'Release Type'
         required: true
-        default: 'patch'
         type: choice
-        options:
-          - patch
-          - minor
-          - major
-      release_status:
-        description: 'Release status'
-        required: true
-        default: 'stable'
-        type: choice
-        options:
-          - stable
-          - beta
-      manual_version:
-        description: 'Manual version (optional, override bump)'
-        required: false
-        default: ''
-        type: string
-
+        options: [stable, beta, nightly]
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: read
+    permissions: {contents: write, packages: write}
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-
+        with: {fetch-depth: 0}
       - name: Set up Python
-        run: uv python install 3.14
-
-      - name: Convert to LF
+        uses: actions/setup-python@v6
+        with: {python-version: '3.14'}
+      - name: Calculate Version
+        id: version
         run: |
-          find . -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "Makefile" -o -name "*.json" -o -name "*.ps1" \) -exec sed -i 's/\r$//' {} +
-
-      - name: Update Version
-        id: versioning
-        run: |
-          MANUAL_VER="${{ github.event.inputs.manual_version }}"
-          if [[ -n "$MANUAL_VER" ]]; then
-            NEW_VERSION="$MANUAL_VER"
-          else
-            python .github/scripts/bump_version.py ${{ github.event.inputs.bump_type }} ${{ github.event.inputs.release_status }}
-            NEW_VERSION=$(cat VERSION.txt)
-            rm VERSION.txt
-          fi
-          
-          # Inject version into all relevant files
-          python scripts/set_version.py "$NEW_VERSION"
-          
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          NEW_VERSION=$(python .github/scripts/version_manager.py bump --type ${{ inputs.release_type }})
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-
-      - name: 📝 Determine Base Tag for Changelog
-        id: base_tag
-        run: |
-          RELEASE_STATUS="${{ github.event.inputs.release_status }}"
-          if [[ "$RELEASE_STATUS" == "stable" ]]; then
-            STABLE_TAGS=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*" | grep -vE "beta" | sed 's/^v//' | sort -urV || true)
-            CURRENT_VER="${{ env.NEW_VERSION }}"
-            FOUND_TAG=""
-            for t in $STABLE_TAGS; do
-              if [[ "$t" == "$CURRENT_VER" ]]; then continue; fi
-              FOUND_TAG="$t"
-              if git rev-parse "v$t" >/dev/null 2>&1; then FOUND_TAG="v$t"; fi
-              break
-            done
-            echo "base_tag=$FOUND_TAG" >> $GITHUB_OUTPUT
-          else
-            ALL_TAGS=$(git tag -l "[v0-9]*" | sed 's/^v//' | sort -rV || true)
-            CURRENT_VER="${{ env.NEW_VERSION }}"
-            FOUND_TAG=""
-            for t in $ALL_TAGS; do
-              if [[ "$t" == "$CURRENT_VER" ]]; then continue; fi
-              FOUND_TAG="$t"
-              if git rev-parse "v$t" >/dev/null 2>&1; then FOUND_TAG="v$t"; fi
-              break
-            done
-            echo "base_tag=$FOUND_TAG" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 📝 Build Changelog
-        id: build_changelog
-        shell: python
-        env:
-          FROM_TAG: ${{ steps.base_tag.outputs.base_tag }}
-          REPO_URL: https://github.com/${{ github.repository }}
-        run: |
-          import os, subprocess, re
-          from_tag = os.environ.get("FROM_TAG")
-          repo_url = os.environ.get("REPO_URL")
-          
-          cmd = ["git", "log", "--pretty=format:%H|%h|%s", "--", "."]
-          if from_tag:
-              cmd.insert(2, f"{from_tag}..HEAD")
-              
-          try:
-              commits = subprocess.check_output(cmd, text=True).strip().split("\n")
-          except Exception:
-              commits = []
-          
-          cats = {
-              "✨ Features": [],
-              "🐛 Bug Fixes": [],
-              "📦 Dependencies": [],
-              "🔧 Maintenance & CI": [],
-              "📝 Documentation": [],
-              "🧪 Tests": [],
-              "🚀 Other": []
-          }
-          
-          for line in commits:
-              if not line or "|" not in line: continue
-              fh, sh, sub = line.split("|", 2)
-              sl = sub.lower()
-              if any(x in sl for x in ["chore: release", "chore: bump", "merge ", "[skip ci]"]): continue
-              sub = re.sub(r"\(#(\d+)\)", rf"([#\1]({repo_url}/pull/\1))", sub)
-              entry = f"- {sub} ([{sh}]({repo_url}/commit/{fh}))"
-              if re.match(r"^(feat|add|new|✨)", sl): cats["✨ Features"].append(entry)
-              elif re.match(r"^(fix|bug|patch|fixed|fixes|🐛)", sl): cats["🐛 Bug Fixes"].append(entry)
-              elif re.match(r"^(deps|dep|update|bump|renovate|📦|⬆️)", sl): cats["📦 Dependencies"].append(entry)
-              elif re.match(r"^(chore|ci|workflow|config|ruff|🔧)", sl): cats["🔧 Maintenance & CI"].append(entry)
-              elif re.match(r"^(docs|documentation|📝)", sl): cats["📝 Documentation"].append(entry)
-              elif re.match(r"^(test|pytest|🧪)", sl): cats["🧪 Tests"].append(entry)
-              else: cats["🚀 Other"].append(entry)
-          
-          changelog = "## Changelog\n\n"
-          
-          new_version = os.environ.get("NEW_VERSION", "0.0.0")
-          if new_version.startswith("0."):
-              warning = "> [!WARNING]\n"
-              warning += "> This integration is currently in a testing stage. "
-              warning += "It is expected that not everything is fully functional "
-              warning += "until a 1.0.0 release or higher is available.\n\n"
-              changelog = warning + changelog
-
-          has_content = False
-          for title in ["✨ Features", "🐛 Bug Fixes", "📦 Dependencies", "🔧 Maintenance & CI", "📝 Documentation", "🧪 Tests", "🚀 Other"]:
-              items = cats[title]
-              if items:
-                  changelog += f"### {title}\n"
-                  for item in items: changelog += f"{item}\n"
-                  changelog += "\n"
-                  has_content = True
-          if not has_content: changelog += "No significant changes in this release."
-          with open("CHANGELOG_BODY.md", "w", encoding="utf-8") as f: f.write(changelog)
-
-      - name: Validate NRO Icon
-        run: |
-          ICON_PNG="switch_app/icon.png"
-          ICON_JPG="switch_app/icon.jpg"
-          if [ -f "$ICON_PNG" ]; then
-            HEADER=$(xxd -p -l 4 "$ICON_PNG")
-            if [ "$HEADER" = "89504e47" ]; then
-              echo "::warning::icon.png is a real PNG! NRO requires JPEG. Auto-converting..."
-              pip install Pillow
-              python -c "from PIL import Image; Image.open('$ICON_PNG').convert('RGB').resize((256,256)).save('$ICON_JPG','JPEG',quality=95)"
-              echo "✅ Converted to icon.jpg (256x256 JPEG)"
-            fi
-          fi
-          if [ ! -f "$ICON_JPG" ]; then
-            echo "::error::No icon.jpg found in switch_app/. NRO will have no icon!"
-            exit 1
-          fi
-          JHEADER=$(xxd -p -l 2 "$ICON_JPG")
-          if [ "$JHEADER" != "ffd8" ]; then
-            echo "::error::icon.jpg is not a valid JPEG!"
-            exit 1
-          fi
-          echo "✅ Icon validated: icon.jpg is a valid JPEG"
-
-      - name: Create boot2.flag
-        run: |
-          mkdir -p switch_sysmodule/flags
-          echo "boot2" > switch_sysmodule/flags/boot2.flag
-
-      - name: Build Nintendo Switch Components
-        uses: docker://devkitpro/devkita64:latest
-        with:
-          args: /bin/bash -c "export PATH=$PATH:/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin && python3 scripts/gen_npdm_json.py && cd switch_sysmodule && make APP_VERSION=${{ env.NEW_VERSION }} && /opt/devkitpro/tools/bin/npdmtool main.json main.npdm && cp homeassistant_sysmodule.nso main && cd ../switch_app && make VERSION=${{ env.NEW_VERSION }}"
-
-      - name: Package HA Integration
-        run: |
-          cd custom_components/switch_cfw
-          zip -r ../../switch_cfw.zip .
-
       - name: Create Release Tag
+        if: inputs.release_type != 'nightly'
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add pyproject.toml custom_components/switch_cfw/manifest.json
-          if ! git diff --staged --quiet; then
-            git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
-          fi
-          git tag v${{ env.NEW_VERSION }}
-          git push origin main --tags
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git commit -am "chore(release): bump version to ${{ steps.version.outputs.version }}"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
+          git push origin main
+      - name: Find Previous Tag
+        id: pre_tag
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+      - name: Generate Changelog
+        if: inputs.release_type != 'nightly'
+        run: |
+          python .github/scripts/changelog_builder.py --from-tag "${{ steps.pre_tag.outputs.tag }}" --repo-url "https://github.com/${{ github.repository }}" --output "CHANGELOG_BODY.md"
+      - name: Zip Component
+        id: zip
+        if: inputs.release_type != 'nightly'
+        run: |
+          DOMAIN=$(basename $(ls -d custom_components/*/ | grep -v "__pycache__" | head -n 1))
+          echo "Found domain: $DOMAIN"
+          echo "DOMAIN=$DOMAIN" >> $GITHUB_ENV
+          cd custom_components
+          zip -r ../$DOMAIN.zip $DOMAIN
+          cd ..
+      - name: Create Release Notes
+        uses: softprops/action-gh-release@v3
+        if: inputs.release_type != 'nightly'
         with:
-          tag_name: v${{ env.NEW_VERSION }}
-          name: Release v${{ env.NEW_VERSION }}
+          tag_name: ${{ steps.version.outputs.version }}
           body_path: CHANGELOG_BODY.md
-          draft: false
-          prerelease: ${{ github.event.inputs.release_status == 'beta' }}
-          files: |
-            switch_cfw.zip
-            switch_sysmodule/main
-            switch_sysmodule/main.npdm
-            switch_sysmodule/flags/boot2.flag
-            switch_app/homeassistant.nro
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🚀 Prepare for next dev cycle
+          prerelease: ${{ inputs.release_type == 'beta' }}
+          files: ${{ env.DOMAIN }}.zip
+      - name: Post-Release Dev Bump
+        if: inputs.release_type != 'nightly'
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          # Pull latest main to avoid conflicts
-          git pull origin main
-          
-          # Bump patch version for the next cycle
-          python .github/scripts/bump_version.py patch stable
-          NEXT_VER=$(cat VERSION.txt)
-          NEXT_DEV_VER="${NEXT_VER}-dev"
-          rm VERSION.txt
-          
-          # Inject the new -dev version into all files
-          python scripts/set_version.py "$NEXT_DEV_VER"
-          
-          git add .
-          git commit -m "chore: prepare for next dev cycle v$NEXT_DEV_VER [skip ci]"
+          NEW_DEV=$(python .github/scripts/version_manager.py bump --type dev)
+          git commit -am "chore(dev): bump to $NEW_DEV"
           git push origin main

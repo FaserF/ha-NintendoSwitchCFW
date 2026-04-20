@@ -22,9 +22,11 @@ class SwitchEntity(CoordinatorEntity[SwitchDataUpdateCoordinator]):
             name="Nintendo Switch",
             manufacturer="Nintendo",
             model="Switch (CFW)",
-            sw_version=str(coordinator.data.get("firmware_version"))
-            if coordinator.data.get("firmware_version")
-            else None,
+            sw_version=(
+                str(coordinator.data.get("firmware_version"))
+                if coordinator.data.get("firmware_version")
+                else None
+            ),
             configuration_url=f"http://{coordinator.host}:{DEFAULT_PORT}/info",
         )
         self._attr_unique_id = f"{coordinator.host}_{self.__class__.__name__}"

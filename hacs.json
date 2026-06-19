@@ -1,4 +1,6 @@
 {
   "name": "Nintendo Switch CFW",
-  "render_readme": true
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "switch_cfw.zip"
 }

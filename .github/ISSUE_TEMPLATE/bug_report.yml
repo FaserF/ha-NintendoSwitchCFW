@@ -21,7 +21,7 @@ body:
     attributes:
       label: Integration Version
       description: Which version of this integration are you using?
-      placeholder: vv0.2.4-dev0
+      placeholder: v0.2.4-dev0
     validations:
       required: true
 

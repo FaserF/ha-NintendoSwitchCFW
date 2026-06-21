@@ -31,7 +31,7 @@ norecursedirs = [".git", "custom_components"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py314"
+target-version = "py312"
 
 [tool.mypy]
 python_version = "3.14"

@@ -5,22 +5,15 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: "Type of release (beta, nightly)"
+        description: "Type of release (stable, beta, nightly)"
         required: true
         default: "beta"
         type: choice
         options:
+          - stable
           - beta
           - nightly
-      bump_level:
-        description: "Bump Level (SemVer only: major, minor, patch)"
-        required: false
-        default: "patch"
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+
       version_override:
         description: "Manually override new version (e.g. 1.2.3 or 2026.6.2b1). Leave empty to use automatic calculation."
         required: false
@@ -67,7 +60,7 @@ jobs:
         id: get_version
         shell: bash
         env:
-          RELEASE_TYPE: ${{ github.event.inputs.release_type || 'beta' }}
+          RELEASE_TYPE: ${{ github.event.inputs.release_type || (contains(github.event.head_commit.message, '[bump-version]') && 'stable' || 'beta') }}
           BUMP_LEVEL: ${{ github.event.inputs.bump_level || 'patch' }}
           VERSION_OVERRIDE: ${{ inputs.version_override }}
           REPO: ${{ github.repository }}
@@ -117,6 +110,7 @@ jobs:
             prerelease_arg="--prerelease"
           fi
           gh release create "$TAG" \
+            --target "${{ github.ref_name }}" \
             --title "Release $VERSION" \
             --notes-file "initial_draft_body.md" \
             --draft \
@@ -149,7 +143,7 @@ jobs:
       - name: Update Files
         shell: bash
         run: |
-          python .github/scripts/version_manager.py bump --type ${{ github.event.inputs.release_type || 'beta' }} --level ${{ github.event.inputs.bump_level || 'patch' }} --override "${{ github.event.inputs.version_override || '' }}"
+          python .github/scripts/version_manager.py bump --type ${{ github.event.inputs.release_type || (contains(github.event.head_commit.message, '[bump-version]') && 'stable' || 'beta') }} --level ${{ github.event.inputs.bump_level || 'patch' }} --override "${{ github.event.inputs.version_override || '' }}"
 
       - name: Commit and Push
         run: |
@@ -198,6 +192,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: 📦 Zip Component
@@ -241,6 +236,7 @@ jobs:
           else
             # Create a brand new release if no draft exists
             gh release create "$TAG" \
+              --target "${{ github.ref_name }}" \
               --title "Release $VERSION" \
               --notes-file "release_body.md" \
               $prerelease_arg \
@@ -253,6 +249,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git reset --hard HEAD
           git pull --rebase origin ${{ github.ref_name }}
+          git fetch --tags
           NEW_DEV=$(python .github/scripts/version_manager.py bump --type dev --level patch)
           if ! git diff --quiet; then
             git commit -am "chore(dev): bump to $NEW_DEV [skip ci]"

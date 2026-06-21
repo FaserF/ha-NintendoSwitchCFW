@@ -5,12 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: "Type of release (stable, beta, nightly)"
+        description: "Type of release (beta, nightly)"
         required: true
         default: "beta"
         type: choice
         options:
-          - stable
           - beta
           - nightly
       bump_level:
@@ -68,7 +67,7 @@ jobs:
         id: get_version
         shell: bash
         env:
-          RELEASE_TYPE: ${{ github.event.inputs.release_type || (contains(github.event.head_commit.message, '[bump-version]') && 'stable' || 'beta') }}
+          RELEASE_TYPE: ${{ github.event.inputs.release_type || 'beta' }}
           BUMP_LEVEL: ${{ github.event.inputs.bump_level || 'patch' }}
           VERSION_OVERRIDE: ${{ inputs.version_override }}
           REPO: ${{ github.repository }}
@@ -149,7 +148,7 @@ jobs:
       - name: Update Files
         shell: bash
         run: |
-          python .github/scripts/version_manager.py bump --type ${{ github.event.inputs.release_type || (contains(github.event.head_commit.message, '[bump-version]') && 'stable' || 'beta') }} --level ${{ github.event.inputs.bump_level || 'patch' }} --override "${{ github.event.inputs.version_override || '' }}"
+          python .github/scripts/version_manager.py bump --type ${{ github.event.inputs.release_type || 'beta' }} --level ${{ github.event.inputs.bump_level || 'patch' }} --override "${{ github.event.inputs.version_override || '' }}"
 
       - name: Commit and Push
         run: |

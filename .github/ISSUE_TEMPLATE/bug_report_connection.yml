@@ -1,0 +1,96 @@
+name: Connection / sys-botbase Bug Report
+description: Report a connection issue or sys-botbase problem with the Nintendo Switch CFW integration
+title: '[Bug][Connection]: '
+labels: ['bug', 'triage', 'connection']
+assignees:
+  - FaserF
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for issues related to connecting to your Nintendo Switch via **sys-botbase** or network connectivity problems.
+
+        Before submitting, please check:
+        - 📋 [Existing issues](https://github.com/FaserF/ha-NintendoSwitchCFW/issues)
+        - 📖 [sys-botbase documentation](https://github.com/olliz0r/sys-botbase)
+
+  - type: input
+    id: version
+    attributes:
+      label: Integration Version
+      placeholder: v1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant Version
+      description: |
+        [![Open your Home Assistant instance and show your Home Assistant version information.](https://my.home-assistant.io/badges/info.svg)](https://my.home-assistant.io/redirect/info/)
+      placeholder: 2025.6.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ha_install_type
+    attributes:
+      label: Home Assistant Installation Type
+      options:
+        - Home Assistant OS
+        - Home Assistant Container
+        - Home Assistant Supervised
+        - Home Assistant Core
+    validations:
+      required: true
+
+  - type: input
+    id: sysbotbase_version
+    attributes:
+      label: sys-botbase Version
+      description: Which version of sys-botbase is installed on your Switch?
+      placeholder: e.g. 2.5.0
+    validations:
+      required: true
+
+  - type: input
+    id: switch_ip
+    attributes:
+      label: Switch IP Address Format
+      description: How is your Switch connected? (static IP recommended)
+      placeholder: e.g. Static IP 192.168.1.x or DHCP
+    validations:
+      required: false
+
+  - type: input
+    id: switch_fw
+    attributes:
+      label: Nintendo Switch Firmware Version
+      placeholder: e.g. 19.0.1
+    validations:
+      required: true
+
+  - type: input
+    id: atmosphere_version
+    attributes:
+      label: Atmosphere Version
+      placeholder: e.g. 1.8.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the connection issue
+      description: What error or behavior are you seeing? Does it fail on setup, or does it disconnect randomly?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please paste relevant log output with debug logging enabled.
+      render: shell
+    validations:
+      required: true

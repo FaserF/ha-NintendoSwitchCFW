@@ -1,80 +1,124 @@
-name: Report an issue
-description: Report an issue with the Nintendoswitchcfw Integration
-title: "[Bug]: "
-labels: ["bug"]
+name: Bug Report
+description: Create a report to help us improve the Nintendo Switch CFW integration
+title: '[Bug]: '
+labels: ['bug', 'triage']
 assignees:
   - FaserF
 body:
   - type: markdown
     attributes:
       value: |
-        This issue form is for reporting bugs only!
+        Thanks for taking the time to fill out this bug report!
 
-        If you have a feature or enhancement request, please use the feature request template!
-  - type: textarea
-    validations:
-      required: true
-    attributes:
-      label: The problem
-      description: >-
-        Describe the issue you are experiencing here.
-        Provide a clear and concise description of what the problem is.
-  - type: markdown
-    attributes:
-      value: |
-        ## Environment
+        Before submitting, please check:
+        - 📋 [Existing issues](https://github.com/FaserF/ha-NintendoSwitchCFW/issues)
+        - 📖 [Documentation](https://github.com/FaserF/ha-NintendoSwitchCFW/blob/master/README.md)
+        - 🔧 [Integration page](https://my.home-assistant.io/redirect/integration/?domain=switch_cfw) in Home Assistant
+        - For connection/sys-botbase issues, use the **Connection Bug Report** template instead!
+
   - type: input
     id: version
+    attributes:
+      label: Integration Version
+      description: Which version of this integration are you using?
+      placeholder: v1.0.0
     validations:
       required: true
+
+  - type: input
+    id: ha_version
     attributes:
-      label: What version of Home Assistant Core has the issue?
-      placeholder: core-
-      description: >
-        Can be found in: [Settings -> About](https://my.home-assistant.io/redirect/info/).
+      label: Home Assistant Version
+      description: |
+        Which version of Home Assistant Core are you running?
+        Can be found in: [Settings → About](https://my.home-assistant.io/redirect/info/).
 
         [![Open your Home Assistant instance and show your Home Assistant version information.](https://my.home-assistant.io/badges/info.svg)](https://my.home-assistant.io/redirect/info/)
+      placeholder: 2025.6.0
+    validations:
+      required: true
+
   - type: dropdown
-    validations:
-      required: true
+    id: ha_install_type
     attributes:
-      label: What type of installation are you running?
-      description: >
-        Can be found in: [Settings -> About](https://my.home-assistant.io/redirect/info/).
-
-        [![Open your Home Assistant instance and show your Home Assistant version information.](https://my.home-assistant.io/badges/info.svg)](https://my.home-assistant.io/redirect/info/)
+      label: Home Assistant Installation Type
       options:
         - Home Assistant OS
         - Home Assistant Container
         - Home Assistant Supervised
         - Home Assistant Core
-  - type: input
-    id: version_integration
     validations:
       required: true
+
+  - type: input
+    id: switch_fw
     attributes:
-      label: What version of this Integration has the issue?
-      placeholder:
-      description: >
-        The version from the release page you are using. Latest version can be found here: https://github.com/FaserF/ha-NintendoSwitchCFW/releases/latest
-  - type: markdown
+      label: Nintendo Switch Firmware Version
+      description: Which firmware version is your Nintendo Switch running?
+      placeholder: e.g. 19.0.1
+    validations:
+      required: false
+
+  - type: input
+    id: atmosphere_version
     attributes:
-      value: |
-        # Details
+      label: Atmosphere / CFW Version
+      description: Which version of Atmosphere (or other CFW) are you running?
+      placeholder: e.g. Atmosphere 1.8.0
+    validations:
+      required: false
+
+  - type: dropdown
+    id: cfw_type
+    attributes:
+      label: CFW Type
+      options:
+        - Atmosphere
+        - Other
+    validations:
+      required: false
+
   - type: textarea
+    id: description
     attributes:
-      label: Example YAML snippet
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostic Information
       description: |
-        If applicable, please provide an example piece of YAML that can help reproduce this problem.
-        This can be from an automation, script, scene or configuration.
+        Please provide the diagnostic information for the integration.
+        You can download this from the [Integration page](https://my.home-assistant.io/redirect/integration/?domain=switch_cfw) → ⋮ → Download diagnostics.
       render: yaml
+    validations:
+      required: false
+
   - type: textarea
+    id: logs
     attributes:
-      label: Anything in the logs that might be useful for us?
-      description: For example, error message, or stack traces.
-      render: txt
-  - type: textarea
-    attributes:
-      label: Additional information
-      description: >
-        If you have any additional information for us, use the field below.
+      label: Relevant log output
+      render: shell
+    validations:
+      required: false

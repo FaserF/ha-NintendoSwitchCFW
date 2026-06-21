@@ -182,9 +182,9 @@ def test_switch_hardcoded_strings():
         for item in hardcoded_found:
             print(item)
 
-    assert (
-        not hardcoded_found
-    ), f"Found hardcoded strings in Switch C++ code: {len(hardcoded_found)}"
+    assert not hardcoded_found, (
+        f"Found hardcoded strings in Switch C++ code: {len(hardcoded_found)}"
+    )
 
 
 def test_branding_consistency():
@@ -201,12 +201,12 @@ def test_branding_consistency():
             continue
         with open(f_path, "r", encoding="utf-8") as f:
             content = f.read()
-            assert (
-                "fseitz" not in content.lower()
-            ), f"Old branding 'fseitz' found in {f_path.name}"
-            assert (
-                "FaserF" in content
-            ), f"New branding 'FaserF' missing in {f_path.name}"
+            assert "fseitz" not in content.lower(), (
+                f"Old branding 'fseitz' found in {f_path.name}"
+            )
+            assert "FaserF" in content, (
+                f"New branding 'FaserF' missing in {f_path.name}"
+            )
 
 
 if __name__ == "__main__":

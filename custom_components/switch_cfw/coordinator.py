@@ -6,7 +6,6 @@ from datetime import timedelta
 from typing import Any
 import asyncio
 import aiohttp
-import async_timeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
@@ -47,7 +46,7 @@ class SwitchDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the Nintendo Switch and GitHub."""
         try:
-            async with async_timeout.timeout(10):
+            async with asyncio.timeout(10):
                 # Fetch system info from Switch
                 data = await self.api.get_info()
 

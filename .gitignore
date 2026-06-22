@@ -42,3 +42,5 @@ logo_final.png
 scripts/deploy_emulator.ps1
 mypy_out.txt
 mypy_errors.txt
+
+*.pyc

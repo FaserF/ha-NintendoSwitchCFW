@@ -34,6 +34,7 @@ line-length = 88
 target-version = "py312"
 
 [tool.mypy]
+explicit_package_bases = true
 python_version = "3.14"
 check_untyped_defs = true
 disallow_any_generics = true

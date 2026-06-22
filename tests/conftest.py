@@ -16,7 +16,7 @@ def mock_hass():
         from homeassistant.helpers import frame
 
         frame._hass.hass = hass
-    except ImportError, AttributeError:
+    except (ImportError, AttributeError):
         pass
 
     return hass

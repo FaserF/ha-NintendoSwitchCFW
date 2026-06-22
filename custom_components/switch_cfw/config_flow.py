@@ -220,7 +220,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except aiohttp.ClientError, asyncio.TimeoutError:
+            except (aiohttp.ClientError, asyncio.TimeoutError):
                 errors["base"] = "cannot_connect"
                 LOGGER.error("Manual connection to %s timed out or failed", self._host)
             except Exception as err:
@@ -313,7 +313,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except aiohttp.ClientError, asyncio.TimeoutError:
+            except (aiohttp.ClientError, asyncio.TimeoutError):
                 errors["base"] = "cannot_connect"
                 LOGGER.error(
                     "Discovery confirmation for %s timed out or failed", self._host

@@ -214,7 +214,8 @@ jobs:
 
       - name: 📦 Zip Component
         run: |
-          zip -r switch_cfw.zip custom_components/switch_cfw
+          cd custom_components/switch_cfw
+          zip -r ../../switch_cfw.zip .
 
       - name: Download Release Body Artifact
         uses: actions/download-artifact@v8

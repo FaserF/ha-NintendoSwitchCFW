@@ -5,6 +5,7 @@
 # Nintendo Switch CFW (for Home Assistant)
 
 [![GitHub Release](https://img.shields.io/github/release/FaserF/ha-NintendoSwitchCFW.svg?style=flat-square)](https://github.com/FaserF/ha-NintendoSwitchCFW/releases)
+[![Downloads (Current release)](https://img.shields.io/github/downloads/FaserF/ha-NintentdoSwitchCFW/latest/switch_cfw.zip?label=Downloads%20(Current%20release)&style=flat-square)](https://github.com/FaserF/ha-NintentdoSwitchCFW/releases)
 [![License](https://img.shields.io/github/license/FaserF/ha-NintendoSwitchCFW.svg?style=flat-square)](LICENSE)
 [![hacs](https://img.shields.io/badge/HACS-custom-orange.svg?style=flat-square)](https://hacs.xyz)
 [![Lint](https://github.com/FaserF/ha-NintendoSwitchCFW/actions/workflows/lint.yml/badge.svg)](https://github.com/FaserF/ha-NintendoSwitchCFW/actions/workflows/lint.yml)

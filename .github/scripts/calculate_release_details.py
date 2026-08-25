@@ -186,7 +186,7 @@ def main():
             integration_count += 1
         elif f.startswith("tests/"):
             test_count += 1
-        elif f.startswith(".github/") or f.startswith("scripts/"):
+        elif f.startswith((".github/", "scripts/")):
             ci_count += 1
         elif f.startswith("docs/") or f.endswith(".md"):
             docs_count += 1

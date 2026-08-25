@@ -252,7 +252,7 @@ if __name__ == "__main__":
     template_dir = ".github/ISSUE_TEMPLATE"
     if os.path.exists(template_dir):
         for filename in os.listdir(template_dir):
-            if filename.endswith(".yml") or filename.endswith(".yaml"):
+            if filename.endswith((".yml", ".yaml")):
                 path = os.path.join(template_dir, filename)
                 changed = clean_and_update_template(
                     path, version, ha_version, repo_name

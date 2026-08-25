@@ -9,7 +9,7 @@ def update_files(new_version):
 
     # 1. pyproject.toml
     if os.path.exists("pyproject.toml"):
-        with open("pyproject.toml", "r", encoding="utf-8") as f:
+        with open("pyproject.toml", encoding="utf-8") as f:
             content = f.read()
         content = re.sub(
             r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_version}\g<2>", content, count=1
@@ -21,7 +21,7 @@ def update_files(new_version):
     # 2. manifest.json
     manifest_path = "custom_components/switch_cfw/manifest.json"
     if os.path.exists(manifest_path):
-        with open(manifest_path, "r", encoding="utf-8") as f:
+        with open(manifest_path, encoding="utf-8") as f:
             manifest = json.load(f)
         manifest["version"] = new_version
         with open(manifest_path, "w", encoding="utf-8", newline="\n") as f:
@@ -32,7 +32,7 @@ def update_files(new_version):
     # 3. const.py
     const_path = "custom_components/switch_cfw/const.py"
     if os.path.exists(const_path):
-        with open(const_path, "r", encoding="utf-8") as f:
+        with open(const_path, encoding="utf-8") as f:
             content = f.read()
         content = re.sub(
             r"(Version: )\d+\.\d+\.\d+(-[a-z0-9.]+)?", rf"\g<1>{new_version}", content
@@ -63,7 +63,7 @@ def update_files(new_version):
     # 4. switch_sysmodule/main.cpp
     sys_main = "switch_sysmodule/main.cpp"
     if os.path.exists(sys_main):
-        with open(sys_main, "r", encoding="utf-8") as f:
+        with open(sys_main, encoding="utf-8") as f:
             content = f.read()
         content = re.sub(
             r'(#define\s+APP_VERSION\s+")[^"]+(")', rf"\g<1>{new_version}\g<2>", content
@@ -75,7 +75,7 @@ def update_files(new_version):
     # 5. switch_app/main.cpp
     app_main = "switch_app/main.cpp"
     if os.path.exists(app_main):
-        with open(app_main, "r", encoding="utf-8") as f:
+        with open(app_main, encoding="utf-8") as f:
             content = f.read()
         content = re.sub(
             r'(#define\s+APP_VERSION\s+")[^"]+(")', rf"\g<1>{new_version}\g<2>", content
@@ -87,7 +87,7 @@ def update_files(new_version):
     # 6. build_switch.ps1
     ps1_path = "build_switch.ps1"
     if os.path.exists(ps1_path):
-        with open(ps1_path, "r", encoding="utf-8") as f:
+        with open(ps1_path, encoding="utf-8") as f:
             content = f.read()
         content = re.sub(
             r'(\[string\]\$Version\s*=\s*")[^"]+(")',

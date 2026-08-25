@@ -24,7 +24,7 @@ def test_translation_parity():
     strings_path = COMPONENT_DIR / "strings.json"
     assert strings_path.exists(), "strings.json missing"
 
-    with open(strings_path, "r", encoding="utf-8") as f:
+    with open(strings_path, encoding="utf-8") as f:
         strings_data = json.load(f)
 
     base_keys = get_keys(strings_data)
@@ -33,7 +33,7 @@ def test_translation_parity():
     assert len(translation_files) > 0, "No translation files found"
 
     for trans_file in translation_files:
-        with open(trans_file, "r", encoding="utf-8") as f:
+        with open(trans_file, encoding="utf-8") as f:
             trans_data = json.load(f)
         trans_keys = get_keys(trans_data)
 
@@ -66,7 +66,7 @@ def test_python_hardcoded_strings():
         if py_file.name == "translations.py":
             continue
 
-        with open(py_file, "r", encoding="utf-8") as f:
+        with open(py_file, encoding="utf-8") as f:
             content = f.read()
             matches = re.finditer(r'["\']([^"\']{5,})["\']', content)
             for match in matches:
@@ -99,7 +99,7 @@ def test_switch_hardcoded_strings():
         if not dir.exists():
             continue
         for cpp_file in dir.rglob("*.[ch]pp"):
-            with open(cpp_file, "r", encoding="utf-8") as f:
+            with open(cpp_file, encoding="utf-8") as f:
                 lines = f.readlines()
                 for i, line in enumerate(lines):
                     for func in ui_functions:
@@ -199,7 +199,7 @@ def test_branding_consistency():
     for f_path in files_to_check:
         if not f_path.exists():
             continue
-        with open(f_path, "r", encoding="utf-8") as f:
+        with open(f_path, encoding="utf-8") as f:
             content = f.read()
             assert "fseitz" not in content.lower(), (
                 f"Old branding 'fseitz' found in {f_path.name}"

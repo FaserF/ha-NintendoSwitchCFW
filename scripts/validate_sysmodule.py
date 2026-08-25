@@ -8,7 +8,7 @@ def validate_main_json(filepath):
         print(f"ERROR: {filepath} not found!")
         sys.exit(1)
 
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         try:
             data = json.load(f)
         except json.JSONDecodeError as e:

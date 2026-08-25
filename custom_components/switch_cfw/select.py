@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from typing import cast
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from typing import cast
 from .const import DOMAIN, LOGGER
 from .coordinator import SwitchDataUpdateCoordinator
 from .entity import SwitchEntity

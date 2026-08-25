@@ -1,6 +1,7 @@
 """Sensor platform for Nintendo Switch CFW."""
 
 from __future__ import annotations
+
 from typing import Any, cast
 
 from homeassistant.components.sensor import (
@@ -11,33 +12,33 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
-    UnitOfTemperature,
-    UnitOfInformation,
-    UnitOfTime,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+    UnitOfInformation,
+    UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    DOMAIN,
-    ATTR_FIRMWARE_VERSION,
     ATTR_BATTERY_LEVEL,
-    ATTR_CURRENT_GAME,
     ATTR_CPU_TEMP,
-    ATTR_GPU_TEMP,
-    ATTR_SKIN_TEMP,
+    ATTR_CURRENT_GAME,
+    ATTR_ERROR_COUNT,
     ATTR_FAN_SPEED,
-    ATTR_SD_TOTAL,
-    ATTR_SD_FREE,
-    ATTR_NAND_TOTAL,
-    ATTR_NAND_FREE,
-    ATTR_UPTIME,
-    ATTR_WIFI_RSSI,
+    ATTR_FIRMWARE_VERSION,
+    ATTR_GPU_TEMP,
     ATTR_MEM_TOTAL,
     ATTR_MEM_USED,
-    ATTR_ERROR_COUNT,
+    ATTR_NAND_FREE,
+    ATTR_NAND_TOTAL,
+    ATTR_SD_FREE,
+    ATTR_SD_TOTAL,
+    ATTR_SKIN_TEMP,
+    ATTR_UPTIME,
+    ATTR_WIFI_RSSI,
+    DOMAIN,
 )
 from .coordinator import SwitchDataUpdateCoordinator
 from .entity import SwitchEntity

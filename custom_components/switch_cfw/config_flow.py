@@ -24,16 +24,16 @@ else:
 from homeassistant.components import network
 from homeassistant.config_entries import (
     ConfigEntry,
-    ConfigFlow as ConfigFlowBase,
     ConfigFlowResult,
     OptionsFlow,
 )
+from homeassistant.config_entries import (
+    ConfigFlow as ConfigFlowBase,
+)
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
-
-
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import SwitchAPI
 from .const import (
@@ -152,7 +152,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                             "name": data.get("name", "Nintendo Switch"),
                         }
                     LOGGER.debug("Probe of %s returned status %s", host, resp.status)
-        except (aiohttp.ClientError, asyncio.TimeoutError, socket.error) as err:
+        except (TimeoutError, OSError, aiohttp.ClientError) as err:
             LOGGER.debug("Probe of %s failed: %s", host, err)
         except Exception as err:
             LOGGER.debug("Unexpected error during probe of %s: %s", host, err)
@@ -220,7 +220,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+            except (TimeoutError, aiohttp.ClientError):
                 errors["base"] = "cannot_connect"
                 LOGGER.error("Manual connection to %s timed out or failed", self._host)
             except Exception as err:
@@ -313,7 +313,7 @@ class ConfigFlow(ConfigFlowBase, domain=DOMAIN):  # type: ignore[call-arg]
                     self._host,
                     err.status,
                 )
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+            except (TimeoutError, aiohttp.ClientError):
                 errors["base"] = "cannot_connect"
                 LOGGER.error(
                     "Discovery confirmation for %s timed out or failed", self._host

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import aiohttp
 import asyncio
 from typing import Any, cast
+
+import aiohttp
 
 from .const import (
     ATTR_LATEST_VERSION,
@@ -126,7 +127,7 @@ class SwitchAPI:
                 err.status,
             )
             raise
-        except asyncio.TimeoutError:
+        except TimeoutError:
             LOGGER.error("Timeout during GET %s", endpoint)
             raise
         except Exception as err:
@@ -161,7 +162,7 @@ class SwitchAPI:
                 err.status,
             )
             return False
-        except asyncio.TimeoutError:
+        except TimeoutError:
             LOGGER.error("Timeout during POST %s", endpoint)
             return False
         except Exception as err:

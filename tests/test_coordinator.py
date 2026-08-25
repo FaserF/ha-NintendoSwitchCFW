@@ -1,8 +1,10 @@
 """Tests for the Switch CFW coordinator."""
 
-import pytest
 from datetime import timedelta
+
+import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
+
 from custom_components.switch_cfw.coordinator import SwitchDataUpdateCoordinator
 
 

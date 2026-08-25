@@ -1,7 +1,8 @@
 """Pytest configuration and fixtures for the Switch CFW integration tests."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from homeassistant.const import CONF_HOST
 
 

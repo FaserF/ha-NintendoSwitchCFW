@@ -13,7 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER, ATTR_APP_VERSION
+from .const import ATTR_APP_VERSION, DOMAIN, LOGGER
 from .coordinator import SwitchDataUpdateCoordinator
 from .entity import SwitchEntity
 

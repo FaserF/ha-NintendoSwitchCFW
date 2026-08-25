@@ -1,8 +1,8 @@
+import json
+import os
 import re
 import subprocess
 import sys
-import json
-import os
 
 
 def get_latest_tag():

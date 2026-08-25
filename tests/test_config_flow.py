@@ -1,15 +1,17 @@
 """Tests for the Switch CFW config flow."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
 import aiohttp
+import pytest
 from homeassistant.const import CONF_HOST
+
 from custom_components.switch_cfw.config_flow import ConfigFlow
 from custom_components.switch_cfw.const import (
+    ATTR_APP_VERSION,
     CONF_API_TOKEN,
     CONF_PORT,
     DEFAULT_PORT,
-    ATTR_APP_VERSION,
     MIN_APP_VERSION,
 )
 

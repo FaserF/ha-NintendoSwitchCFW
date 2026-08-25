@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from typing import Any
-import asyncio
-import aiohttp
 
+import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SwitchAPI
-from .const import DOMAIN, LOGGER, CONF_UPDATE_REPO
+from .const import CONF_UPDATE_REPO, DOMAIN, LOGGER
 
 
 class SwitchDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -82,7 +82,7 @@ class SwitchDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     data["sleep_mode"] = False
 
                 return data
-        except (aiohttp.ClientError, TimeoutError, asyncio.TimeoutError) as err:
+        except (aiohttp.ClientError, TimeoutError) as err:
             if not self.sleep_mode and self.data:
                 LOGGER.info(
                     "Nintendo Switch %s is unreachable, entering sleep mode", self.host

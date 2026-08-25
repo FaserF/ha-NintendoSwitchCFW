@@ -1,7 +1,9 @@
 """Tests for the Switch CFW update platform."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+
 from custom_components.switch_cfw.update import SwitchAppUpdate, SwitchSystemUpdate
 
 

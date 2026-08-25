@@ -1,6 +1,6 @@
 import json
-import sys
 import os
+import sys
 
 
 def validate_main_json(filepath):

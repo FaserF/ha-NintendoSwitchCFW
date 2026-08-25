@@ -1,7 +1,9 @@
 """Tests for the Switch CFW buttons."""
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+
 from custom_components.switch_cfw.button import RebootButton, ShutdownButton
 
 

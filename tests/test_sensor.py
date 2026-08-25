@@ -1,13 +1,15 @@
 """Tests for the Switch CFW sensors."""
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from custom_components.switch_cfw.sensor import (
-    FirmwareSensor,
     BatterySensor,
     CurrentGameSensor,
-    TemperatureSensor,
+    FirmwareSensor,
     StorageSensor,
+    TemperatureSensor,
 )
 
 

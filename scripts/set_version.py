@@ -1,6 +1,6 @@
-import re
 import json
 import os
+import re
 import sys
 
 

@@ -1,7 +1,9 @@
 """Tests for the Switch CFW binary sensors."""
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from custom_components.switch_cfw.binary_sensor import (
     ChargingBinarySensor,
     DockedBinarySensor,

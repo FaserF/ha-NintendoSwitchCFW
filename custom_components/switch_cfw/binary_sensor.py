@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
@@ -10,8 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from typing import cast
-from .const import DOMAIN, ATTR_CHARGING, ATTR_SLEEP_MODE, ATTR_DOCK_STATUS
+from .const import ATTR_CHARGING, ATTR_DOCK_STATUS, ATTR_SLEEP_MODE, DOMAIN
 from .coordinator import SwitchDataUpdateCoordinator
 from .entity import SwitchEntity
 

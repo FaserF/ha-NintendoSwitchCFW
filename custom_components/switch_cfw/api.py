@@ -102,7 +102,9 @@ class SwitchAPI:
         cached = self._firmware_cache.get(repository)
         if not force and cached:
             cached_version, last_fetch, is_error = cached
-            ttl = 1800 if is_error else 14400  # 30 min on error/rate limit, 4 hours on success
+            ttl = (
+                1800 if is_error else 14400
+            )  # 30 min on error/rate limit, 4 hours on success
             if now - last_fetch < ttl:
                 return {ATTR_LATEST_VERSION: cached_version}
 
@@ -120,7 +122,9 @@ class SwitchAPI:
                     self._firmware_cache[repository] = (latest_version, now, False)
                     return {ATTR_LATEST_VERSION: latest_version}
         except Exception as err:
-            LOGGER.warning("Error fetching firmware from GitHub for %s: %s", repository, err)
+            LOGGER.warning(
+                "Error fetching firmware from GitHub for %s: %s", repository, err
+            )
             old_version = cached[0] if cached else None
             self._firmware_cache[repository] = (old_version, now, True)
             return {ATTR_LATEST_VERSION: old_version}

@@ -108,11 +108,6 @@ def update_files(new_version):
             content,
         )
         content = re.sub(
-            r'ATTR_LATEST_VERSION = "[^"]+"',
-            f'ATTR_LATEST_VERSION = "{new_version}"',
-            content,
-        )
-        content = re.sub(
             r'ATTR_APP_VERSION = "[^"]+"',
             f'ATTR_APP_VERSION = "{new_version}"',
             content,

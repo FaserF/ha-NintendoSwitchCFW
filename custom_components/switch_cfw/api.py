@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Any, cast
 
 import aiohttp
@@ -32,6 +33,7 @@ class SwitchAPI:
         self._session = session
         self._base_url = f"http://{host}:{port}"
         self._headers = {"X-API-Token": api_token}
+        self._firmware_cache: dict[str, tuple[str | None, float, bool]] = {}
 
     async def get_info(self) -> dict[str, Any]:
         """Get system information."""
@@ -89,25 +91,39 @@ class SwitchAPI:
         """Fetch recent logs from the sysmodule."""
         return cast(list[dict[str, Any]], await self._get("/logs"))
 
-    async def get_firmware_update(self, repository: str) -> dict[str, Any]:
-        """Fetch the latest firmware version from GitHub releases."""
+    async def get_firmware_update(
+        self, repository: str, force: bool = False
+    ) -> dict[str, Any]:
+        """Fetch the latest firmware version from GitHub releases with caching."""
         if not self._session:
             return {ATTR_LATEST_VERSION: None}
 
+        now = time.time()
+        cached = self._firmware_cache.get(repository)
+        if not force and cached:
+            cached_version, last_fetch, is_error = cached
+            ttl = 1800 if is_error else 14400  # 30 min on error/rate limit, 4 hours on success
+            if now - last_fetch < ttl:
+                return {ATTR_LATEST_VERSION: cached_version}
+
         try:
             url = FIRMWARE_UPDATE_URL.format(repository=repository)
+            headers = {"Accept": "application/vnd.github.v3+json"}
             async with asyncio.timeout(10):
-                async with self._session.get(url) as response:
+                async with self._session.get(url, headers=headers) as response:
                     response.raise_for_status()
                     data = await response.json()
                     # The tag_name is usually the version number (e.g. 17.0.1)
                     latest_version = data.get("tag_name")
                     if latest_version and latest_version.startswith("v"):
                         latest_version = latest_version[1:]
+                    self._firmware_cache[repository] = (latest_version, now, False)
                     return {ATTR_LATEST_VERSION: latest_version}
         except Exception as err:
-            LOGGER.error("Error fetching firmware from GitHub: %s", err)
-        return {ATTR_LATEST_VERSION: None}
+            LOGGER.warning("Error fetching firmware from GitHub for %s: %s", repository, err)
+            old_version = cached[0] if cached else None
+            self._firmware_cache[repository] = (old_version, now, True)
+            return {ATTR_LATEST_VERSION: old_version}
 
     async def _get(self, endpoint: str) -> Any:
         """Perform a GET request."""

@@ -45,7 +45,7 @@ ATTR_LOGS = "logs"
 ATTR_DOCK_STATUS = "dock_status"
 
 # Attributes for HA
-ATTR_LATEST_VERSION = "0.2.4-dev"
+ATTR_LATEST_VERSION = "latest_version"
 ATTR_TITLE_ID = "current_title_id"
 ATTR_APP_VERSION = "0.2.4-dev"
 

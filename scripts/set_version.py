@@ -43,11 +43,6 @@ def update_files(new_version):
             content,
         )
         content = re.sub(
-            r'(ATTR_LATEST_VERSION\s*=\s*")[^"]+(")',
-            rf"\g<1>{new_version}\g<2>",
-            content,
-        )
-        content = re.sub(
             r'(ATTR_APP_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_version}\g<2>", content
         )
         content = re.sub(

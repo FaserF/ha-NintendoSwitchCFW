@@ -11,16 +11,12 @@
 [![Lint](https://github.com/FaserF/ha-NintendoSwitchCFW/actions/workflows/lint.yml/badge.svg)](https://github.com/FaserF/ha-NintendoSwitchCFW/actions/workflows/lint.yml)
 
 > [!WARNING]
-> ### ⚠️ Project Moved & Deprecated / Projekt Umgezogen
-> **Dieses Repository wird nicht mehr weitergeführt und erhält keine Änderungen oder Updates mehr.**
+> ### ⚠️ Project Moved & Deprecated
+> **This repository is deprecated and will no longer receive any updates, bugfixes, or new features.**
 >
-> Die gesamte aktive Weiterentwicklung, alle neuen Features, Fixes und Verbesserungen finden ab sofort im neuen Repository **[Switch Assistant](https://github.com/FaserF/switch-assistant)** statt!
+> All active development, new features, and future improvements have permanently moved to **[Switch Assistant](https://github.com/FaserF/switch-assistant)**.
 >
-> 👉 **Bitte wechselt auf das neue Repository:** **[https://github.com/FaserF/switch-assistant](https://github.com/FaserF/switch-assistant)**
->
-> ---
-> **This repository is deprecated and will no longer receive any updates or changes.**
-> All active development, new features, and improvements have moved to **[Switch Assistant](https://github.com/FaserF/switch-assistant)**. Please migrate to the new repository!
+> 👉 **Please migrate to the new repository:** **[https://github.com/FaserF/switch-assistant](https://github.com/FaserF/switch-assistant)**
 
 A modern, high-quality Home Assistant integration for Nintendo Switch consoles running Atmosphere Custom Firmware. Monitor your console's health, track current games, and execute system commands directly from your dashboard.
 
